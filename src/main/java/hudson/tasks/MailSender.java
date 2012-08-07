@@ -409,7 +409,11 @@ public class MailSender {
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
             if (adrs != null)
+            	try {
                 r.add(Mailer.StringToAddress(adrs, charset));
+                } catch(AddressException e) {
+                    listener.getLogger().println("Invalid address: " + adrs);
+                }
             else {
                 listener.getLogger().println(Messages.MailSender_NoAddress(a.getFullName()));
             }
@@ -437,15 +441,4 @@ public class MailSender {
      * Sometimes the outcome of the previous build affects the e-mail we send, hence this checkpoint.
      */
     private static final CheckPoint CHECKPOINT = new CheckPoint("mail sent");
-    
-    static {
-    	// Fix JENKINS-9006
-    	// When sending to multiple recipients, send to valid recipients even if some are
-    	// invalid, unless we have explicitly said otherwise.
-    	for (String property: Arrays.asList("mail.smtp.sendpartial", "mail.smtps.sendpartial")) {
-    		if (System.getProperty(property) == null) {
-    			System.setProperty(property, "true");
-        	}
-        }
-    }
 }
