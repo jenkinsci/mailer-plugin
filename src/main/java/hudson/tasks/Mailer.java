@@ -525,11 +525,8 @@ public class Mailer extends Notifier {
         @Exported
         public String getAddress() {
             if(hasExplicitlyConfiguredAddress()) {
-System.out.println("User has an explicitly defined email address: " + emailAddress);		 
                 return emailAddress;
-	    }
-
-System.out.println("Resolving email address for user: " + user.toString());	    
+	        }
 
             // try the inference logic
             return MailAddressResolver.resolve(user);

@@ -8,7 +8,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
   </parent>
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>1.466-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <!--
