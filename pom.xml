@@ -76,12 +76,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <!--
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/mailer2-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/mailer2-plugin.git</developerConnection>
+    <connection>scm:git:https://github.com/jenkinsci/mailer-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/mailer-plugin.git</developerConnection>
   </scm>
-  -->
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
