@@ -225,6 +225,16 @@ public class Mailer extends Notifier {
         private String charset;
         
         /**
+         * If false do not try to resolve e-mail addresses.
+         *
+         * Setting this to false will effectively disable hudson.tasks.MailAddressResolver
+         * extension point.
+         *
+         * @see MailAddressResolver.resolve(User u)
+         */
+        private boolean tryToResolve = true;
+
+        /**
          * Used to keep track of number test e-mails.
          */
         private static transient int testEmailCount = 0;
@@ -333,7 +343,9 @@ public class Mailer extends Notifier {
             charset = json.getString("charset");
             if (charset == null || charset.length() == 0)
             	charset = "UTF-8";
-            
+
+            tryToResolve = json.optBoolean("tryToResolve", true);
+
             save();
             return true;
         }
@@ -380,6 +392,10 @@ public class Mailer extends Notifier {
         	return c;
         }
 
+        public boolean getTryToResolve() {
+            return tryToResolve;
+        }
+
         public void setDefaultSuffix(String defaultSuffix) {
             this.defaultSuffix = defaultSuffix;
         }
@@ -411,6 +427,10 @@ public class Mailer extends Notifier {
         
         public void setCharset(String chaset) {
             this.charset = chaset;
+        }
+
+        public void setTryToResolve(boolean tryToResolve) {
+            this.tryToResolve = tryToResolve;
         }
 
         public void setSmtpAuth(String userName, String password) {
