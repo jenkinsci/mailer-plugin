@@ -41,6 +41,7 @@ import hudson.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 
+import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
@@ -180,6 +181,10 @@ public class Mailer extends Notifier {
 
         /**
          * Hudson's own URL, to put into the e-mail.
+         *
+         * @deprecated as of 1.4
+         *      Maintained in {@link JenkinsLocationConfiguration} but left here
+         *      for compatibility just in case, so as not to lose this information.
          */
         private String hudsonUrl;
 
@@ -193,6 +198,10 @@ public class Mailer extends Notifier {
         /**
          * The e-mail address that Hudson puts to "From:" field in outgoing e-mails.
          * Null if not configured.
+         *
+         * @deprecated as of 1.4
+         *      Maintained in {@link JenkinsLocationConfiguration} but left here
+         *      for compatibility just in case, so as not to lose this information.
          */
         private String adminAddress;
 
@@ -311,14 +320,9 @@ public class Mailer extends Notifier {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             // this code is brain dead
             smtpHost = nullify(json.getString("smtpServer"));
-            setAdminAddress(json.getString("adminAddress"));
             setReplyToAddress(json.getString("replyToAddress"));
 
             defaultSuffix = nullify(json.getString("defaultSuffix"));
-            String url = nullify(json.getString("url"));
-            if(url!=null && !url.endsWith("/"))
-                url += '/';
-            hudsonUrl = url;
 
             if(json.has("useSMTPAuth")) {
                 JSONObject auth = json.getJSONObject("useSMTPAuth");
@@ -347,14 +351,20 @@ public class Mailer extends Notifier {
             return smtpHost;
         }
 
+        /**
+         * @deprecated as of 1.4
+         *      Use {@link JenkinsLocationConfiguration}
+         */
         public String getAdminAddress() {
-            String v = adminAddress;
-            if(v==null)     v = Messages.Mailer_Address_Not_Configured();
-            return v;
+            return JenkinsLocationConfiguration.get().getAdminAddress();
         }
 
+        /**
+         * @deprecated as of 1.4
+         *      Use {@link JenkinsLocationConfiguration}
+         */
         public String getUrl() {
-            return hudsonUrl;
+            return JenkinsLocationConfiguration.get().getUrl();
         }
 
         public String getSmtpAuthUserName() {
@@ -384,17 +394,20 @@ public class Mailer extends Notifier {
             this.defaultSuffix = defaultSuffix;
         }
 
+        /**
+         * @deprecated as of 1.4
+         *      Use {@link JenkinsLocationConfiguration}
+         */
         public void setHudsonUrl(String hudsonUrl) {
-            this.hudsonUrl = hudsonUrl;
+            JenkinsLocationConfiguration.get().setUrl(hudsonUrl);
         }
 
+        /**
+         * @deprecated as of 1.4
+         *      Use {@link JenkinsLocationConfiguration}
+         */
         public void setAdminAddress(String adminAddress) {
-            if(adminAddress.startsWith("\"") && adminAddress.endsWith("\"")) {
-                // some users apparently quote the whole thing. Don't konw why
-                // anyone does this, but it's a machine's job to forgive human mistake
-                adminAddress = adminAddress.substring(1,adminAddress.length()-1);
-            }
-            this.adminAddress = adminAddress;
+            JenkinsLocationConfiguration.get().setAdminAddress(adminAddress);
         }
 
         public void setSmtpHost(String smtpHost) {
