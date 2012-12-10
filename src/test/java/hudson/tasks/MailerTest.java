@@ -65,16 +65,6 @@ public class MailerTest extends HudsonTestCase {
         assertEquals("me <me@sun.com>",senders[0].toString());
     }
 
-    /**
-     * Makes sure the use of "localhost" in the Hudson URL reports a warning.
-     */
-    public void testLocalHostWarning() throws Exception {
-        HtmlPage p = new WebClient().goTo("configure");
-        HtmlInput url = p.getFormByName("config").getInputByName("_.url");
-        url.setValueAttribute("http://localhost:1234/");
-        assertTrue(p.getDocumentElement().getTextContent().contains("instead of localhost"));
-    }
-
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
     public void testConfigRoundtrip() throws Exception {
         Mailer m = new Mailer();
