@@ -446,15 +446,6 @@ public class Mailer extends Notifier {
             return m;
         }
 
-        /**
-         * Checks the URL in <tt>global.jelly</tt>
-         */
-        public FormValidation doCheckUrl(@QueryParameter String value) {
-            if(value.startsWith("http://localhost"))
-                return FormValidation.warning(Messages.Mailer_Localhost_Error());
-            return FormValidation.ok();
-        }
-
         public FormValidation doAddressCheck(@QueryParameter String value) {
             try {
                 new InternetAddress(value);
@@ -472,10 +463,6 @@ public class Mailer extends Notifier {
             } catch (UnknownHostException e) {
                 return FormValidation.error(Messages.Mailer_Unknown_Host_Name()+value);
             }
-        }
-
-        public FormValidation doCheckAdminAddress(@QueryParameter String value) {
-            return doAddressCheck(value);
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
