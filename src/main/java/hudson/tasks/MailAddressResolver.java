@@ -92,6 +92,10 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      */
     public abstract String findMailAddressFor(User u);
     
+    /**
+     * Try to resolve email address using resolvers.
+     * @return User address or null if resolution failed
+     */
     public static String resolve(User u) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
@@ -108,6 +112,17 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         }
 
         // fall back logic
+        return resolveFast(u);
+    }
+
+    /**
+     * Try to resolve user email address fast enough to be used from UI
+     * <p>
+     * This implementation does not trigger {@link MailAddressResolver} extension point.
+     * @return User address or null if resolution failed
+     */
+    public static String resolveFast(User u) {
+
         String extractedAddress = extractAddressFromId(u.getFullName());
         if (extractedAddress != null)
             return extractedAddress;
@@ -125,8 +140,9 @@ public abstract class MailAddressResolver implements ExtensionPoint {
                 return m.group(1)+ds; // user+defaultSuffix
 
             return u.getId()+ds;
-        } else
-            return null;
+        }
+
+        return null;
     }
 
     /**
