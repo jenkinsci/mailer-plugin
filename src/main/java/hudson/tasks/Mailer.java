@@ -532,6 +532,15 @@ public class Mailer extends Notifier {
             return MailAddressResolver.resolve(user);
         }
 
+        public String getConfiguredAddress() {
+            if(hasExplicitlyConfiguredAddress()) {
+                return emailAddress;
+            }
+
+            // try the inference logic
+            return MailAddressResolver.resolveFast(user);
+        }
+
         /**
          * Has the user configured a value explicitly (true), or is it inferred (false)?
          */
