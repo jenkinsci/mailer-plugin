@@ -23,8 +23,11 @@
  */
 package hudson.tasks;
 
+import static org.junit.Assert.assertEquals;
 import hudson.model.FreeStyleProject;
+import hudson.model.User;
 import hudson.tasks.Mailer.DescriptorImpl;
+
 import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -116,5 +119,48 @@ public class MailerTest extends HudsonTestCase {
         assertEquals(false,d.getUseSsl());
         assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
         assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
+    }
+
+    public void testNameAlreadyIsAnAddress() throws Exception {
+
+        assertEquals(
+                "user@example.com",
+                inferUserAddress("user@example.com", "")
+        );
+    }
+
+    public void testNameContainsAddress() throws Exception {
+
+        assertEquals(
+                "user@example.com",
+                inferUserAddress("User Name <user@example.com>", "")
+        );
+    }
+
+    @Bug(5164)
+    public void test5164() throws Exception {
+
+        assertEquals(
+                "user@example.com",
+                inferUserAddress("DOMAIN\\user", "@example.com")
+        );
+    }
+
+    private String inferUserAddress(String username, String suffix) {
+
+        final DescriptorImpl descriptor = Mailer.descriptor();
+        descriptor.setDefaultSuffix(suffix);
+
+        final User user = User.get(username, true, null);
+
+        return new UserPropertyMock(user, null).getConfiguredAddress();
+    }
+
+    private static class UserPropertyMock extends Mailer.UserProperty {
+
+        public UserPropertyMock(User user, String emailAddress) {
+            super(emailAddress);
+            this.user = user;
+        }
     }
 }
