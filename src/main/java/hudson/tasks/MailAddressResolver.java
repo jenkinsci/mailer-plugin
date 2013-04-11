@@ -62,7 +62,14 @@ import java.util.regex.Pattern;
  * So the common technique for a mail address resolution is to define your own {@link UserProperty} types and
  * add it to {@link User} objects where more context is available. For example, an {@link SCM} implementation
  * can have a lot more information about a particular user during a check out, so that would be a good place
- * to capture information as {@link UserProperty}, which then later used by a {@link MailAddressResolver}. 
+ * to capture information as {@link UserProperty}, which then later used by a {@link MailAddressResolver}.
+ *
+ * <h2>Performance considerations</h2>
+ * <p>
+ * Mail address resolution is a potentially time consuming process. It can considerably slow down operations
+ * relaying on mail address resolution, especially on Jenkins instances having registered several resolvers.
+ * Searching through all projects is generally a bad idea. See <a href="https://issues.jenkins-ci.org/browse/JENKINS-16437">JENKINS-16437</a>
+ * for more details.
  *
  * @author Kohsuke Kawaguchi
  * @since 1.192
