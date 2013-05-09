@@ -81,8 +81,8 @@
     </dependency>
   </dependencies>
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/mailer-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/mailer-plugin.git</developerConnection>
+    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
   </scm>
   <repositories>
     <repository>
