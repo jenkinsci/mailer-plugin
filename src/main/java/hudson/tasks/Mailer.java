@@ -46,6 +46,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
@@ -101,10 +102,34 @@ public class Mailer extends Notifier {
      */
     public boolean dontNotifyEveryUnstableBuild;
 
+    public boolean isNotifyEveryUnstableBuild() {
+        return !dontNotifyEveryUnstableBuild;
+    }
+
     /**
      * If true, individuals will receive e-mails regarding who broke the build.
      */
     public boolean sendToIndividuals;
+
+    /**
+     * Default Constructor.
+     * 
+     * This is left for backward compatibility.
+     */
+    @Deprecated
+    public Mailer() {}
+
+    /**
+     * @param recipients
+     * @param notifyEveryUnstableBuild inverted for historical reasons.
+     * @param sendToIndividuals
+     */
+    @DataBoundConstructor
+    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+        this.recipients = recipients;
+        this.dontNotifyEveryUnstableBuild = !notifyEveryUnstableBuild;
+        this.sendToIndividuals = sendToIndividuals;
+    }
 
     @Override
     public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -178,15 +203,6 @@ public class Mailer extends Notifier {
          * to send e-mails. Null if not configured.
          */
         private String defaultSuffix;
-
-        /**
-         * Hudson's own URL, to put into the e-mail.
-         *
-         * @deprecated as of 1.4
-         *      Maintained in {@link JenkinsLocationConfiguration} but left here
-         *      for compatibility just in case, so as not to lose this information.
-         */
-        private String hudsonUrl;
 
         /**
          * If non-null, use SMTP-AUTH with these information.
@@ -429,21 +445,6 @@ public class Mailer extends Notifier {
         public void setSmtpAuth(String userName, String password) {
             this.smtpAuthUsername = userName;
             this.smtpAuthPassword = Secret.fromString(password);
-        }
-
-        @Override
-        public Publisher newInstance(StaplerRequest req, JSONObject formData) {
-            Mailer m = new Mailer();
-            req.bindParameters(m,"mailer_");
-            m.dontNotifyEveryUnstableBuild = req.getParameter("mailer_notifyEveryUnstableBuild")==null;
-
-            if(hudsonUrl==null) {
-                // if Hudson URL is not configured yet, infer some default
-                hudsonUrl = Functions.inferHudsonURL(req);
-                save();
-            }
-
-            return m;
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
