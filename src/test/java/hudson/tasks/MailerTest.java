@@ -34,6 +34,8 @@ import org.jvnet.mock_javamail.Mailbox;
 import javax.mail.Address;
 import javax.mail.internet.InternetAddress;
 
+import jenkins.model.JenkinsLocationConfiguration;
+
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 
@@ -109,5 +111,33 @@ public class MailerTest extends HudsonTestCase {
         assertEquals(false,d.getUseSsl());
         assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
         assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
+    }
+    
+    /**
+     * Simulates {@link JenkinsLocationConfiguration} is not configured.
+     */
+    private static class CleanJenkinsLocationConfiguration extends JenkinsLocationConfiguration {
+        @Override
+        public synchronized void load() {
+            getConfigFile().delete();
+            super.load();
+        }
+    };
+    
+    /**
+     * Test {@link JenkinsLocationConfiguration} can load hudsonUrl.
+     */
+    public void testHudsonUrlCompatibility() throws Exception {
+        // not configured.
+        assertNull(new CleanJenkinsLocationConfiguration().getUrl());
+        
+        Mailer m = new Mailer("", true, false);
+        FreeStyleProject p = createFreeStyleProject();
+        p.getPublishersList().add(m);
+        WebClient wc = new WebClient();
+        submit(wc.getPage(p,"configure").getFormByName("config"));
+        
+        // configured via the marshaled XML file of Mailer
+        assertEquals(wc.getContextPath(), new CleanJenkinsLocationConfiguration().getUrl());
     }
 }

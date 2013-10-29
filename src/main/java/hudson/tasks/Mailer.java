@@ -40,6 +40,7 @@ import hudson.model.UserPropertyDescriptor;
 import hudson.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
@@ -203,6 +204,17 @@ public class Mailer extends Notifier {
          * to send e-mails. Null if not configured.
          */
         private String defaultSuffix;
+
+        /**
+         * Hudson's own URL, to put into the e-mail.
+         *
+         * @deprecated as of 1.4
+         *      Maintained in {@link JenkinsLocationConfiguration} but left here
+         *      for compatibility just in case, so as not to lose this information.
+         *      This is loaded to {@link JenkinsLocationConfiguration} via the XML file
+         *      marshaled with {@link XStream2}.
+         */
+        private String hudsonUrl;
 
         /**
          * If non-null, use SMTP-AUTH with these information.
@@ -445,6 +457,19 @@ public class Mailer extends Notifier {
         public void setSmtpAuth(String userName, String password) {
             this.smtpAuthUsername = userName;
             this.smtpAuthPassword = Secret.fromString(password);
+        }
+
+        @Override
+        public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            Mailer m = (Mailer)super.newInstance(req, formData);
+
+            if(hudsonUrl==null) {
+                // if Hudson URL is not configured yet, infer some default
+                hudsonUrl = Functions.inferHudsonURL(req);
+                save();
+            }
+
+            return m;
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
