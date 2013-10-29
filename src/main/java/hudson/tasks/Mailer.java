@@ -40,12 +40,14 @@ import hudson.model.UserPropertyDescriptor;
 import hudson.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
@@ -101,10 +103,34 @@ public class Mailer extends Notifier {
      */
     public boolean dontNotifyEveryUnstableBuild;
 
+    public boolean isNotifyEveryUnstableBuild() {
+        return !dontNotifyEveryUnstableBuild;
+    }
+
     /**
      * If true, individuals will receive e-mails regarding who broke the build.
      */
     public boolean sendToIndividuals;
+
+    /**
+     * Default Constructor.
+     * 
+     * This is left for backward compatibility.
+     */
+    @Deprecated
+    public Mailer() {}
+
+    /**
+     * @param recipients
+     * @param notifyEveryUnstableBuild inverted for historical reasons.
+     * @param sendToIndividuals
+     */
+    @DataBoundConstructor
+    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+        this.recipients = recipients;
+        this.dontNotifyEveryUnstableBuild = !notifyEveryUnstableBuild;
+        this.sendToIndividuals = sendToIndividuals;
+    }
 
     @Override
     public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -185,6 +211,8 @@ public class Mailer extends Notifier {
          * @deprecated as of 1.4
          *      Maintained in {@link JenkinsLocationConfiguration} but left here
          *      for compatibility just in case, so as not to lose this information.
+         *      This is loaded to {@link JenkinsLocationConfiguration} via the XML file
+         *      marshaled with {@link XStream2}.
          */
         private String hudsonUrl;
 
@@ -432,10 +460,8 @@ public class Mailer extends Notifier {
         }
 
         @Override
-        public Publisher newInstance(StaplerRequest req, JSONObject formData) {
-            Mailer m = new Mailer();
-            req.bindParameters(m,"mailer_");
-            m.dontNotifyEveryUnstableBuild = req.getParameter("mailer_notifyEveryUnstableBuild")==null;
+        public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            Mailer m = (Mailer)super.newInstance(req, formData);
 
             if(hudsonUrl==null) {
                 // if Hudson URL is not configured yet, infer some default

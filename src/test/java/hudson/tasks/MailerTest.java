@@ -34,6 +34,8 @@ import org.jvnet.mock_javamail.Mailbox;
 import javax.mail.Address;
 import javax.mail.internet.InternetAddress;
 
+import jenkins.model.JenkinsLocationConfiguration;
+
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 
@@ -53,8 +55,7 @@ public class MailerTest extends HudsonTestCase {
         // create a project to simulate a build failure
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new FailureBuilder());
-        Mailer m = new Mailer();
-        m.recipients = recipient;
+        Mailer m = new Mailer(recipient, false, false);
         project.getPublishersList().add(m);
 
         project.scheduleBuild2(0).get();
@@ -67,16 +68,10 @@ public class MailerTest extends HudsonTestCase {
 
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
     public void testConfigRoundtrip() throws Exception {
-        Mailer m = new Mailer();
-        m.recipients = "kk@kohsuke.org";
-        m.dontNotifyEveryUnstableBuild = true;
-        m.sendToIndividuals = true;
+        Mailer m = new Mailer("kk@kohsuke.org", false, true);
         verifyRoundtrip(m);
 
-        m = new Mailer();
-        m.recipients = "";
-        m.dontNotifyEveryUnstableBuild = false;
-        m.sendToIndividuals = false;
+        m = new Mailer("", true, false);
         verifyRoundtrip(m);
     }
 
@@ -116,5 +111,33 @@ public class MailerTest extends HudsonTestCase {
         assertEquals(false,d.getUseSsl());
         assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
         assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
+    }
+    
+    /**
+     * Simulates {@link JenkinsLocationConfiguration} is not configured.
+     */
+    private static class CleanJenkinsLocationConfiguration extends JenkinsLocationConfiguration {
+        @Override
+        public synchronized void load() {
+            getConfigFile().delete();
+            super.load();
+        }
+    };
+    
+    /**
+     * Test {@link JenkinsLocationConfiguration} can load hudsonUrl.
+     */
+    public void testHudsonUrlCompatibility() throws Exception {
+        // not configured.
+        assertNull(new CleanJenkinsLocationConfiguration().getUrl());
+        
+        Mailer m = new Mailer("", true, false);
+        FreeStyleProject p = createFreeStyleProject();
+        p.getPublishersList().add(m);
+        WebClient wc = new WebClient();
+        submit(wc.getPage(p,"configure").getFormByName("config"));
+        
+        // configured via the marshaled XML file of Mailer
+        assertEquals(wc.getContextPath(), new CleanJenkinsLocationConfiguration().getUrl());
     }
 }
