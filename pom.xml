@@ -29,13 +29,6 @@
     <powermock.version>1.4.12</powermock.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-  <developers>
-    <developer>
-      <id>slide</id>
-      <name>Alex Earl</name>
-      <email>slide.o.mix@gmail.com</email>
-    </developer>
-  </developers>
   <dependencies>
     <dependency>
       <groupId>javax.servlet</groupId>
