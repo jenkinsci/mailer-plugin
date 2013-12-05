@@ -124,8 +124,6 @@ public class MailSender {
             e.printStackTrace(listener.error(e.getMessage()));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace(listener.error(e.getMessage()));
-        } finally {
-            CHECKPOINT.report();
         }
 
         return true;
@@ -137,14 +135,14 @@ public class MailSender {
      * See http://www.nabble.com/Losing-build-state-after-aborts--td24335949.html
      *
      * <p>
-     * And since we are consulting the earlier result, we need to wait for the previous build
-     * to pass the check point.
+     * And since we are consulting the earlier result, if the previous build is still running, behave as if this were the first build.
      */
     private Result findPreviousBuildResult(AbstractBuild<?,?> b) throws InterruptedException {
-        CHECKPOINT.block();
         do {
             b=b.getPreviousBuild();
-            if(b==null) return null;
+            if (b == null || b.isBuilding()) {
+                return null;
+            }
         } while((b.getResult()==Result.ABORTED) || (b.getResult()==Result.NOT_BUILT));
         return b.getResult();
     }
@@ -158,7 +156,7 @@ public class MailSender {
             if (!dontNotifyEveryUnstableBuild)
                 return createUnstableMail(build, listener);
             Result prev = findPreviousBuildResult(build);
-            if (prev == Result.SUCCESS)
+            if (prev == Result.SUCCESS || prev == null)
                 return createUnstableMail(build, listener);
         }
 
@@ -436,9 +434,4 @@ public class MailSender {
 
     private static final int MAX_LOG_LINES = Integer.getInteger(MailSender.class.getName()+".maxLogLines",250);
 
-
-    /**
-     * Sometimes the outcome of the previous build affects the e-mail we send, hence this checkpoint.
-     */
-    private static final CheckPoint CHECKPOINT = new CheckPoint("mail sent");
 }
