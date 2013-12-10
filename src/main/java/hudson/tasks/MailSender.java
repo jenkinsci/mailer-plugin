@@ -48,6 +48,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -313,7 +314,7 @@ public class MailSender {
         msg.addHeader("X-Jenkins-Job", build.getProject().getDisplayName());
         msg.addHeader("X-Jenkins-Result", build.getResult().toString());
         msg.setContent("", "text/plain");
-        msg.setFrom(Mailer.StringToAddress(Mailer.descriptor().getAdminAddress(), charset));
+        msg.setFrom(Mailer.StringToAddress(JenkinsLocationConfiguration.get().getAdminAddress(), charset));
         msg.setSentDate(new Date());
         
         String replyTo = Mailer.descriptor().getReplyToAddress();

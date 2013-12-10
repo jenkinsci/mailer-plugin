@@ -36,8 +36,6 @@ import javax.mail.internet.InternetAddress;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -46,7 +44,7 @@ public class MailerTest extends HudsonTestCase {
     @Bug(1566)
     public void testSenderAddress() throws Exception {
         // intentionally give the whole thin in a double quote
-        Mailer.descriptor().setAdminAddress("\"me <me@sun.com>\"");
+        JenkinsLocationConfiguration.get().setAdminAddress("\"me <me@sun.com>\"");
 
         String recipient = "you <you@sun.com>";
         Mailbox yourInbox = Mailbox.get(new InternetAddress(recipient));
@@ -86,7 +84,7 @@ public class MailerTest extends HudsonTestCase {
 
     public void testGlobalConfigRoundtrip() throws Exception {
         DescriptorImpl d = Mailer.descriptor();
-        d.setAdminAddress("admin@me");
+        JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
         d.setDefaultSuffix("default-suffix");
         d.setHudsonUrl("http://nowhere/");
         d.setSmtpHost("smtp.host");
@@ -96,7 +94,7 @@ public class MailerTest extends HudsonTestCase {
 
         submit(new WebClient().goTo("configure").getFormByName("config"));
 
-        assertEquals("admin@me",d.getAdminAddress());
+        assertEquals("admin@me", JenkinsLocationConfiguration.get().getAdminAddress());
         assertEquals("default-suffix",d.getDefaultSuffix());
         assertEquals("http://nowhere/",d.getUrl());
         assertEquals("smtp.host",d.getSmtpServer());
