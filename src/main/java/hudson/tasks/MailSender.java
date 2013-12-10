@@ -88,7 +88,7 @@ public class MailSender {
     }
   
     public MailSender(String recipients, boolean dontNotifyEveryUnstableBuild, boolean sendToIndividuals, String charset, Collection<AbstractProject> includeUpstreamCommitters) {
-        this.recipients = recipients;
+        this.recipients = Util.fixNull(recipients);
         this.dontNotifyEveryUnstableBuild = dontNotifyEveryUnstableBuild;
         this.sendToIndividuals = sendToIndividuals;
         this.charset = charset;
