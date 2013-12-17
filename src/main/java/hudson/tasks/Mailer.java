@@ -44,13 +44,7 @@ import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
-import org.apache.tools.ant.types.selectors.SelectorUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.export.Exported;
 
 import java.io.File;
 import java.io.IOException;
@@ -274,11 +268,6 @@ public class Mailer extends Notifier {
 
         public String getDisplayName() {
             return Messages.Mailer_DisplayName();
-        }
-
-        @Override
-        public String getHelpFile() {
-            return "/help/project-config/mailer.html";
         }
 
         public String getDefaultSuffix() {
