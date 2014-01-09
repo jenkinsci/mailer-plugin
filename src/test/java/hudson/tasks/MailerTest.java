@@ -53,7 +53,7 @@ public class MailerTest extends HudsonTestCase {
         // create a project to simulate a build failure
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new FailureBuilder());
-        Mailer m = new Mailer(recipient, false, false);
+        Mailer m = new Mailer(recipient, false, false, false);
         project.getPublishersList().add(m);
 
         project.scheduleBuild2(0).get();
@@ -66,10 +66,10 @@ public class MailerTest extends HudsonTestCase {
 
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
     public void testConfigRoundtrip() throws Exception {
-        Mailer m = new Mailer("kk@kohsuke.org", false, true);
+        Mailer m = new Mailer("kk@kohsuke.org", false, true, false);
         verifyRoundtrip(m);
 
-        m = new Mailer("", true, false);
+        m = new Mailer("", true, false, false);
         verifyRoundtrip(m);
     }
 
@@ -129,7 +129,7 @@ public class MailerTest extends HudsonTestCase {
         // not configured.
         assertNull(new CleanJenkinsLocationConfiguration().getUrl());
         
-        Mailer m = new Mailer("", true, false);
+        Mailer m = new Mailer("", true, false, false);
         FreeStyleProject p = createFreeStyleProject();
         p.getPublishersList().add(m);
         WebClient wc = new WebClient();
