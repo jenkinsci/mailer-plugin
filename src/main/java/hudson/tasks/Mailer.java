@@ -35,6 +35,7 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Result;
 import hudson.model.User;
 import hudson.model.UserPropertyDescriptor;
 import hudson.tasks.i18n.Messages;
@@ -107,6 +108,11 @@ public class Mailer extends Notifier {
     public boolean sendToIndividuals;
 
     /**
+     * If true, the notification only will be sent for FAILED build.
+     */
+    public boolean restrictToFailures;
+
+    /**
      * Default Constructor.
      * 
      * This is left for backward compatibility.
@@ -118,12 +124,14 @@ public class Mailer extends Notifier {
      * @param recipients
      * @param notifyEveryUnstableBuild inverted for historical reasons.
      * @param sendToIndividuals
+     * @param restrictToFailures
      */
     @DataBoundConstructor
-    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals, boolean restrictToFailures) {
         this.recipients = recipients;
         this.dontNotifyEveryUnstableBuild = !notifyEveryUnstableBuild;
         this.sendToIndividuals = sendToIndividuals;
+        this.restrictToFailures = restrictToFailures;
     }
 
     @Override
@@ -133,6 +141,9 @@ public class Mailer extends Notifier {
         // substitute build parameters
         EnvVars env = build.getEnvironment(listener);
         String recip = env.expand(recipients);
+
+        if (restrictToFailures && build.getResult() != Result.FAILURE)
+            return true;
 
         return new MailSender(recip, dontNotifyEveryUnstableBuild, sendToIndividuals, descriptor().getCharset()) {
             /** Check whether a path (/-separated) will be archived. */

@@ -30,6 +30,9 @@ THE SOFTWARE.
   <f:entry field="notifyEveryUnstableBuild" title="">
     <f:checkbox title="${%Send e-mail for every unstable build}" default="true" />
   </f:entry>
+  <f:entry field="restrictToFailures" title="">
+    <f:checkbox title="${%Send only for failed builds}" />
+  </f:entry>
   <f:entry field="sendToIndividuals" title="">
     <f:checkbox title="${%Send separate e-mails to individuals who broke the build}" />
   </f:entry>
