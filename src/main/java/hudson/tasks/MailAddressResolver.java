@@ -100,15 +100,38 @@ public abstract class MailAddressResolver implements ExtensionPoint {
     public abstract String findMailAddressFor(User u);
     
     /**
+     * Indicates that resolver is fast enough to be used in UIs. 
+     * @return True if resolver can be used in fast UI resolvers. False by default
+     * @since 0.6
+     */
+    public boolean isFast() {
+        return false;
+    }
+    
+    /**
      * Try to resolve email address using resolvers.
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
+        return resolve(u, false);
+    }
+     
+    /**
+     * Try to resolve email address using resolvers.
+     * @param u
+     * @param useFastOnly If true, non-fast resolvers will be skipped
+     * @return User address or null if resolution failed
+     */
+    public static String resolve(User u, boolean useFastOnly) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
         }
 
         for (MailAddressResolver r : all()) {
+            if (useFastOnly && !r.isFast()) {
+                continue;
+            }
+            
             String email = r.findMailAddressFor(u);
             if(email!=null) {
                 if (LOGGER.isLoggable(Level.FINE)) {
