@@ -126,10 +126,19 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Try to resolve user email address fast enough to be used from UI
      * <p>
      * This implementation does not trigger {@link MailAddressResolver} extension point.
+     * @param u A user, for whom the email should be resolved
      * @return User address or null if resolution failed
      */
     public static String resolveFast(User u) {
 
+        // Try user properties
+        Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
+        if (emailProperty != null && emailProperty.hasExplicitlyConfiguredAddress()) {
+            String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
+            if (explicitAddress != null) // A final check to prevent concurrency issues
+                return explicitAddress;
+        }
+        
         String extractedAddress = extractAddressFromId(u.getFullName());
         if (extractedAddress != null)
             return extractedAddress;
