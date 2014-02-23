@@ -133,7 +133,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
 
         // Try user properties
         Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
-        if (emailProperty != null && emailProperty.hasExplicitlyConfiguredAddress()) {
+        if (emailProperty != null) {
             String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
             if (explicitAddress != null) // A final check to prevent concurrency issues
                 return explicitAddress;
