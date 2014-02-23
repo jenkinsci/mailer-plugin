@@ -104,6 +104,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
+       
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
         }
@@ -129,7 +130,6 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * @return User address or null if resolution failed
      */
     public static String resolveFast(User u) {
-
         String extractedAddress = extractAddressFromId(u.getFullName());
         if (extractedAddress != null)
             return extractedAddress;
@@ -157,13 +157,27 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      */
     private static String extractAddressFromId(String id) {
         Matcher m = EMAIL_ADDRESS_REGEXP.matcher(id);
-        if(m.matches())
-    		return m.group(1);
-    	return null;
+        if (m.matches())
+            return m.group(1);
+
+        // sometimes we get something like "Kohsuke Kawaguchi _kohsuke.kawaguchi@sun.com_"
+        int idx = id.indexOf("_");
+        if (idx >= 0) {
+            StringBuilder temp = new StringBuilder(id);
+            temp.replace(idx, idx+1, "<");
+            idx = temp.lastIndexOf("_");
+            if(idx >= 0)
+                temp.replace(idx, idx+1, ">");
+            
+            m = EMAIL_ADDRESS_REGEXP.matcher(temp.toString());
+            if (m.matches())
+                return m.group(1);
+        }
+        return null;
     }
 
     /**
-     * Matches strings like "Kohsuke Kawaguchi &lt;kohsuke.kawaguchi@sun.com>"
+     * Matches strings like "Kohsuke Kawaguchi &lt;kohsuke.kawaguchi@sun.com&gt;"
      * @see #extractAddressFromId(String)
      */
     private static final Pattern EMAIL_ADDRESS_REGEXP = Pattern.compile("^.*<([^>]+)>.*$");

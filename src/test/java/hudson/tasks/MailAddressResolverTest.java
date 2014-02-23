@@ -83,6 +83,20 @@ public class MailAddressResolverTest {
         validateUserPropertyAddress("user@example.com", "User Name <user@example.com>", "");
     }
 
+    @Bug(16332)
+    @Test
+    public void nameContainsAddressWithUnderscores() throws Exception {
+
+        validateUserPropertyAddress("user@example.com", "User Name _user@example.com_", "");
+    }
+
+    @Bug(16332)
+    @Test
+    public void nameContainsAddressWithUnderscoresInNameToo() throws Exception {
+
+        validateUserPropertyAddress("user_name@example.com", "User Name _user_name@example.com_", "");
+    }    
+
     @Bug(5164)
     @Test
     public void test5164() throws Exception {
