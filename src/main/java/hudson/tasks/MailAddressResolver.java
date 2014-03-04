@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import hudson.tasks.Mailer;
 
 /**
  * Infers e-mail addresses for the user when none is specified.
@@ -101,11 +102,19 @@ public abstract class MailAddressResolver implements ExtensionPoint {
     
     /**
      * Try to resolve email address using resolvers.
+     * If a user specifies a Mail {@link UserProperty}, then it will be used with
+     * the highest priority.
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
+        }
+        
+        // Use User Property with a highest priority
+        String userPropertyAddress = extractAddressFromUserProperty(u);
+        if (userPropertyAddress != null) {
+            return userPropertyAddress;
         }
 
         for (MailAddressResolver r : all()) {
@@ -131,12 +140,9 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      */
     public static String resolveFast(User u) {
 
-        // Try user properties
-        Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
-        if (emailProperty != null) {
-            String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
-            if (explicitAddress != null) // A final check to prevent concurrency issues
-                return explicitAddress;
+        String userPropertyAddress = extractAddressFromUserProperty(u);
+        if (userPropertyAddress != null) {
+            return userPropertyAddress;
         }
         
         String extractedAddress = extractAddressFromId(u.getFullName());
@@ -159,6 +165,22 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         }
 
         return null;
+    }
+    
+    /**
+     * Try to resolve user email using his {@link UserProperty}.
+     * @param u A user, for whom the email should be resolved
+     * @return User address or null if the resolution fails
+     */
+    private static String extractAddressFromUserProperty (User u) {
+        Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
+        if (emailProperty != null) {
+            String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
+            if (explicitAddress != null) // A final check to prevent concurrency issues
+                return explicitAddress;
+        }
+        
+        return null; // Return nothing by default
     }
 
     /**
