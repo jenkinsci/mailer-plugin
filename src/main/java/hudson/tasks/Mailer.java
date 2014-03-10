@@ -57,6 +57,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import javax.annotation.CheckForNull;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -554,6 +555,20 @@ public class Mailer extends Notifier {
 
             // try the inference logic
             return MailAddressResolver.resolveFast(user);
+        }
+        
+        /**
+         * Gets an email address, which have been explicitly configured on the
+         * user's configuration page.
+         * This method also truncates spaces. It is highly recommended to
+         * use {@link #hasExplicitlyConfiguredAddress()} method to check the
+         * option's existence.
+         * @return A trimmed email address. It can be null
+         * @since TODO
+         */
+        @CheckForNull
+        public String getExplicitlyConfiguredAddress() {
+            return Util.fixEmptyAndTrim(emailAddress);
         }
 
         /**

@@ -140,6 +140,17 @@ public class MailAddressResolverTest {
         assertEquals("a@b.c", address);
     }
 
+    @Test
+    public void doResolveWhenUsingExplicitlUserEmail() {
+        final String testEmail = "very_strange_email@test.case";
+        
+        when(user.getProperty(Mailer.UserProperty.class)).thenReturn(
+            new Mailer.UserProperty(testEmail));
+        
+        final String address = MailAddressResolver.resolveFast(user);
+        assertEquals(testEmail, address);
+    }
+    
     private MailAddressResolver mockResolver() {
 
         return PowerMockito.mock(MailAddressResolver.class);
