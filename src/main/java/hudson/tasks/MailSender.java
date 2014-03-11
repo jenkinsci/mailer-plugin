@@ -366,7 +366,13 @@ public class MailSender {
 
             rcp.addAll(buildCulpritList(listener,culprits));
         }
-        msg.setRecipients(Message.RecipientType.TO, rcp.toArray(new InternetAddress[rcp.size()]));
+        
+        // set recipients after filtering out recipients that should not receive emails
+        Set<InternetAddress> filteredRecipients = MailAddressFilter.getFilteredRecipients(build, listener, rcp);
+        if (!filteredRecipients.isEmpty()) {
+            msg.setRecipients(Message.RecipientType.TO,
+                    filteredRecipients.toArray(new InternetAddress[filteredRecipients.size()]));
+        }
 
         AbstractBuild<?, ?> pb = build.getPreviousBuild();
         if(pb!=null) {
