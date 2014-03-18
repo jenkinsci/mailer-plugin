@@ -111,8 +111,11 @@ public class MailSender {
                 Address[] allRecipients = mail.getAllRecipients();
                 if (allRecipients != null) {
                     StringBuilder buf = new StringBuilder("Sending e-mails to:");
-                    for (Address a : allRecipients)
-                        buf.append(' ').append(a);
+                    for (Address a : allRecipients) {
+                        if (a!=null) {
+                            buf.append(' ').append(a);
+                        }
+                    }
                     listener.getLogger().println(buf);
                     Transport.send(mail);
 
