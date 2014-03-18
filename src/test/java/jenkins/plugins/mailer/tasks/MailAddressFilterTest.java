@@ -21,13 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.tasks;
+package jenkins.plugins.mailer.tasks;
 
 import hudson.ExtensionList;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.Hudson;
-import hudson.tasks.MailAddressFilter;
+import jenkins.plugins.mailer.tasks.MailAddressFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -120,7 +120,7 @@ public class MailAddressFilterTest {
 
         PowerMockito.spy(MailAddressFilter.class);
 
-        PowerMockito.doReturn(new MockExtensionList(jenkins, filters)).when(MailAddressFilter.class, "all");
+        PowerMockito.doReturn(new MockExtensionList(jenkins, filters)).when(MailAddressFilter.class, "allExtensions");
     }
 
     private static class MockExtensionList extends ExtensionList<MailAddressFilter> {

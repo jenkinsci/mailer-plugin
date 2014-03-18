@@ -31,6 +31,7 @@ import hudson.model.*;
 import hudson.scm.ChangeLogSet;
 import hudson.tasks.i18n.Messages;
 import jenkins.model.Jenkins;
+import jenkins.plugins.mailer.tasks.MailAddressFilter;
 
 import javax.mail.Address;
 import javax.mail.Message;

@@ -21,14 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.tasks;
+package jenkins.plugins.mailer.tasks;
 
+import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.BuildListener;
+import hudson.model.Describable;
 import hudson.model.AbstractBuild;
-import jenkins.model.Jenkins;
+import hudson.model.Hudson;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -42,14 +44,14 @@ import javax.mail.internet.InternetAddress;
  * 
  * <p>
  * This is an extension point of Jenkins. Plugins that contribute a new
- * implementation of this class should put {@link Extension} on your
+ * implementation of this class should extend {@link Extension} on your
  * implementation class, like this:
  * 
  * <pre>
  * &#64;Extension
  * class MyMailAddressFilter extends {@link MailAddressFilter} {
- *     ...
- *     @Override
+ *    ...
+ *    &#64;Override
  *    public boolean isFiltered(AbstractBuild<?, ?> build, BuildListener listener, InternetAddress address) {
  *         ...
  *         return isFilteredAddress;
@@ -58,9 +60,9 @@ import javax.mail.internet.InternetAddress;
  * </pre>
  * 
  * @author Mudiaga Obada
- * @since 1.5XX
+ * @since 1.9
  */
-public abstract class MailAddressFilter implements ExtensionPoint {
+public abstract class MailAddressFilter implements Describable<MailAddressFilter>, ExtensionPoint {
 
     /**
      * Checks if a given email should be excluded from the recipients of an
@@ -105,18 +107,13 @@ public abstract class MailAddressFilter implements ExtensionPoint {
      */
     private static boolean isFilteredRecipient(InternetAddress address, BuildListener listener, AbstractBuild<?, ?> build) {
 
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine("Checking for filtered email address for \"" + address + "\"");
-        }
-
-        for (MailAddressFilter filter : all()) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Checking for filtered email address for \"" + address + "\" with " + filter.getClass().getName());
-            }
+        LOGGER.log(Level.FINE, "Checking for filtered email address for \"{0}\"", address);
+        
+        for (MailAddressFilter filter : allExtensions()) {
+            LOGGER.log(Level.FINE, "Checking for filtered email address for \"{0}\" with \"{1}\"", 
+                    new Object[] { address, filter.getDescriptor().getDisplayName() });
             if (filter.isFiltered(build, listener, address)) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine("Filtered out email recipient " + address);
-                }
+                LOGGER.log(Level.FINE, "Filtered out email recipient \"{0}\"", address);
                 return true;
             }
         }
@@ -124,11 +121,19 @@ public abstract class MailAddressFilter implements ExtensionPoint {
         return false;
     }
 
+    public MailAddressFilterDescriptor getDescriptor() {
+        return (MailAddressFilterDescriptor)Hudson.getInstance().getDescriptor(getClass());
+    }
+    
     /**
      * Returns all the registered {@link MailAddressFilter} descriptors
      */
-    public static ExtensionList<MailAddressFilter> all() {
-        return Jenkins.getInstance().getExtensionList(MailAddressFilter.class);
+    public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
+        return Hudson.getInstance().<MailAddressFilter,MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
+    }
+    
+    public static ExtensionList<MailAddressFilter> allExtensions() {
+        return Hudson.getInstance().getExtensionList(MailAddressFilter.class);
     }
 
     private static final Logger LOGGER = Logger.getLogger(MailAddressFilter.class.getName());
