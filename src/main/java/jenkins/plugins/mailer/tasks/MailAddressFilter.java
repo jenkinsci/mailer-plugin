@@ -111,7 +111,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
         
         for (MailAddressFilter filter : allExtensions()) {
             LOGGER.log(Level.FINE, "Checking for filtered email address for \"{0}\" with \"{1}\"", 
-                    new Object[] { address, filter.getDescriptor().getDisplayName() });
+                    new Object[] { address, filter.getClass().getName() });
             if (filter.isFiltered(build, listener, address)) {
                 LOGGER.log(Level.FINE, "Filtered out email recipient \"{0}\"", address);
                 return true;
@@ -121,6 +121,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
         return false;
     }
 
+    @Override
     public MailAddressFilterDescriptor getDescriptor() {
         return (MailAddressFilterDescriptor)Hudson.getInstance().getDescriptor(getClass());
     }
