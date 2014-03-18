@@ -51,10 +51,12 @@ import javax.mail.internet.InternetAddress;
  * &#64;Extension
  * class MyMailAddressFilter extends {@link MailAddressFilter} {
  *    ...
- *    &#64;Override
- *    public boolean isFiltered(AbstractBuild<?, ?> build, BuildListener listener, InternetAddress address) {
- *         ...
- *         return isFilteredAddress;
+ *     &#64;Extension
+ *     public static class DescriptorImpl extends MailAddressFilterDescriptor {
+ *         &#64;Override
+ *         public String getDisplayName() {
+ *             return "myMailAddressFilterExtension";
+ *         }
  *     }
  * }
  * </pre>
