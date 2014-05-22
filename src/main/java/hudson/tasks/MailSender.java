@@ -275,7 +275,7 @@ public class MailSender {
                 // Careful with path separator between $1 and $2:
                 // workspaceDir will not normally end with one;
                 // workspaceDir.toURI() will end with '/' if and only if workspaceDir.exists() at time of call
-                wsPattern = Pattern.compile("(" +
+                wsPattern = ws == null ? null : Pattern.compile("(" +
                     Pattern.quote(ws.getRemote()) + "|" + Pattern.quote(ws.toURI().toString()) + ")[/\\\\]?([^:#\\s]*)");
             }
             for (String line : lines) {
