@@ -118,12 +118,16 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         }
 
         for (MailAddressResolver r : all()) {
-            String email = r.findMailAddressFor(u);
-            if(email!=null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(r+" resolved "+u.getId()+" to "+email);
+            try {
+                String email = r.findMailAddressFor(u);
+                if(email!=null) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.fine(r+" resolved "+u.getId()+" to "+email);
+                    }
+                    return email;
                 }
-                return email;
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, r+" failed to resolve "+u+". Ignoring and moving on",e);
             }
         }
 
