@@ -48,6 +48,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -88,7 +89,7 @@ public class MailSender {
     }
   
     public MailSender(String recipients, boolean dontNotifyEveryUnstableBuild, boolean sendToIndividuals, String charset, Collection<AbstractProject> includeUpstreamCommitters) {
-        this.recipients = recipients;
+        this.recipients = Util.fixNull(recipients);
         this.dontNotifyEveryUnstableBuild = dontNotifyEveryUnstableBuild;
         this.sendToIndividuals = sendToIndividuals;
         this.charset = charset;
@@ -124,8 +125,6 @@ public class MailSender {
             e.printStackTrace(listener.error(e.getMessage()));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace(listener.error(e.getMessage()));
-        } finally {
-            CHECKPOINT.report();
         }
 
         return true;
@@ -137,14 +136,14 @@ public class MailSender {
      * See http://www.nabble.com/Losing-build-state-after-aborts--td24335949.html
      *
      * <p>
-     * And since we are consulting the earlier result, we need to wait for the previous build
-     * to pass the check point.
+     * And since we are consulting the earlier result, if the previous build is still running, behave as if this were the first build.
      */
     private Result findPreviousBuildResult(AbstractBuild<?,?> b) throws InterruptedException {
-        CHECKPOINT.block();
         do {
             b=b.getPreviousBuild();
-            if(b==null) return null;
+            if (b == null || b.isBuilding()) {
+                return null;
+            }
         } while((b.getResult()==Result.ABORTED) || (b.getResult()==Result.NOT_BUILT));
         return b.getResult();
     }
@@ -158,7 +157,7 @@ public class MailSender {
             if (!dontNotifyEveryUnstableBuild)
                 return createUnstableMail(build, listener);
             Result prev = findPreviousBuildResult(build);
-            if (prev == Result.SUCCESS)
+            if (prev == Result.SUCCESS || prev == null)
                 return createUnstableMail(build, listener);
         }
 
@@ -276,7 +275,7 @@ public class MailSender {
                 // Careful with path separator between $1 and $2:
                 // workspaceDir will not normally end with one;
                 // workspaceDir.toURI() will end with '/' if and only if workspaceDir.exists() at time of call
-                wsPattern = Pattern.compile("(" +
+                wsPattern = ws == null ? null : Pattern.compile("(" +
                     Pattern.quote(ws.getRemote()) + "|" + Pattern.quote(ws.toURI().toString()) + ")[/\\\\]?([^:#\\s]*)");
             }
             for (String line : lines) {
@@ -315,7 +314,7 @@ public class MailSender {
         msg.addHeader("X-Jenkins-Job", build.getProject().getDisplayName());
         msg.addHeader("X-Jenkins-Result", build.getResult().toString());
         msg.setContent("", "text/plain");
-        msg.setFrom(Mailer.StringToAddress(Mailer.descriptor().getAdminAddress(), charset));
+        msg.setFrom(Mailer.StringToAddress(JenkinsLocationConfiguration.get().getAdminAddress(), charset));
         msg.setSentDate(new Date());
         
         String replyTo = Mailer.descriptor().getReplyToAddress();
@@ -436,9 +435,4 @@ public class MailSender {
 
     private static final int MAX_LOG_LINES = Integer.getInteger(MailSender.class.getName()+".maxLogLines",250);
 
-
-    /**
-     * Sometimes the outcome of the previous build affects the e-mail we send, hence this checkpoint.
-     */
-    private static final CheckPoint CHECKPOINT = new CheckPoint("mail sent");
 }

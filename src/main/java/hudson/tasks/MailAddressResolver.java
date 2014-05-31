@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import hudson.tasks.Mailer;
 
 /**
  * Infers e-mail addresses for the user when none is specified.
@@ -62,7 +63,14 @@ import java.util.regex.Pattern;
  * So the common technique for a mail address resolution is to define your own {@link UserProperty} types and
  * add it to {@link User} objects where more context is available. For example, an {@link SCM} implementation
  * can have a lot more information about a particular user during a check out, so that would be a good place
- * to capture information as {@link UserProperty}, which then later used by a {@link MailAddressResolver}. 
+ * to capture information as {@link UserProperty}, which then later used by a {@link MailAddressResolver}.
+ *
+ * <h2>Performance considerations</h2>
+ * <p>
+ * Mail address resolution is a potentially time consuming process. It can considerably slow down operations
+ * relaying on mail address resolution, especially on Jenkins instances having registered several resolvers.
+ * Searching through all projects is generally a bad idea. See <a href="https://issues.jenkins-ci.org/browse/JENKINS-16437">JENKINS-16437</a>
+ * for more details.
  *
  * @author Kohsuke Kawaguchi
  * @since 1.192
@@ -92,9 +100,21 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      */
     public abstract String findMailAddressFor(User u);
     
+    /**
+     * Try to resolve email address using resolvers.
+     * If a user specifies a Mail {@link UserProperty}, then it will be used with
+     * the highest priority.
+     * @return User address or null if resolution failed
+     */
     public static String resolve(User u) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
+        }
+        
+        // Use User Property with a highest priority
+        String userPropertyAddress = extractAddressFromUserProperty(u);
+        if (userPropertyAddress != null) {
+            return userPropertyAddress;
         }
 
         for (MailAddressResolver r : all()) {
@@ -108,6 +128,23 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         }
 
         // fall back logic
+        return resolveFast(u);
+    }
+
+    /**
+     * Try to resolve user email address fast enough to be used from UI
+     * <p>
+     * This implementation does not trigger {@link MailAddressResolver} extension point.
+     * @param u A user, for whom the email should be resolved
+     * @return User address or null if resolution failed
+     */
+    public static String resolveFast(User u) {
+
+        String userPropertyAddress = extractAddressFromUserProperty(u);
+        if (userPropertyAddress != null) {
+            return userPropertyAddress;
+        }
+        
         String extractedAddress = extractAddressFromId(u.getFullName());
         if (extractedAddress != null)
             return extractedAddress;
@@ -125,8 +162,25 @@ public abstract class MailAddressResolver implements ExtensionPoint {
                 return m.group(1)+ds; // user+defaultSuffix
 
             return u.getId()+ds;
-        } else
-            return null;
+        }
+
+        return null;
+    }
+    
+    /**
+     * Try to resolve user email using his {@link UserProperty}.
+     * @param u A user, for whom the email should be resolved
+     * @return User address or null if the resolution fails
+     */
+    private static String extractAddressFromUserProperty (User u) {
+        Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
+        if (emailProperty != null) {
+            String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
+            if (explicitAddress != null) // A final check to prevent concurrency issues
+                return explicitAddress;
+        }
+        
+        return null; // Return nothing by default
     }
 
     /**
