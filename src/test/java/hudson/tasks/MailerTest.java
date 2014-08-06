@@ -23,6 +23,7 @@
  */
 package hudson.tasks;
 
+import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Mailer.DescriptorImpl;
 import org.jvnet.hudson.test.Bug;
@@ -56,9 +57,9 @@ public class MailerTest extends HudsonTestCase {
         Mailer m = new Mailer(recipient, false, false);
         project.getPublishersList().add(m);
 
-        project.scheduleBuild2(0).get();
+        FreeStyleBuild b = project.scheduleBuild2(0).get();
 
-        assertEquals(1,yourInbox.size());
+        assertEquals(getLog(b), 1, yourInbox.size());
         Address[] senders = yourInbox.get(0).getFrom();
         assertEquals(1,senders.length);
         assertEquals("me <me@sun.com>",senders[0].toString());
