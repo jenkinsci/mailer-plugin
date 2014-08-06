@@ -350,7 +350,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if(json.has("useSMTPAuth")) {
                 JSONObject auth = json.getJSONObject("useSMTPAuth");
                 smtpAuthUsername = nullify(auth.getString("smtpAuthUserName"));
-                smtpAuthPassword = Secret.fromString(nullify(auth.getString("smtpAuthPassword")));
+                smtpAuthPassword = Secret.fromString(nullify(auth.getString("smtpAuthPasswordSecret")));
             } else {
                 smtpAuthUsername = null;
                 smtpAuthPassword = null;
@@ -398,7 +398,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if (smtpAuthPassword==null) return null;
             return Secret.toString(smtpAuthPassword);
         }
-        
+
+        public Secret getSmtpAuthPasswordSecret() {
+            return smtpAuthPassword;
+        }
+
         public boolean getUseSsl() {
         	return useSsl;
         }

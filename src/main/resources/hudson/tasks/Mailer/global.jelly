@@ -37,7 +37,7 @@ THE SOFTWARE.
         <f:entry title="${%User Name}" field="smtpAuthUserName">
           <f:textbox />
         </f:entry>
-        <f:entry title="${%Password}" field="smtpAuthPassword">
+        <f:entry title="${%Password}" field="smtpAuthPasswordSecret">
           <f:password />
         </f:entry>
       </f:optionalBlock>
