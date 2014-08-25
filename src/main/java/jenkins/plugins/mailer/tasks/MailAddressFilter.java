@@ -27,10 +27,13 @@ import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
+import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.AbstractBuild;
 import hudson.model.Hudson;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -75,7 +78,22 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      * @return true if given InternetAddress is to be excluded from the
      *         recipients
      */
-    public abstract boolean isFiltered(AbstractBuild<?, ?> build, BuildListener listener, InternetAddress address);
+    public boolean shouldFilter(Run<?,?> build, TaskListener listener, InternetAddress address) {
+        if (Util.isOverridden(MailAddressFilter.class, getClass(), "isFiltered", AbstractBuild.class, BuildListener.class, InternetAddress.class) && build instanceof AbstractBuild && listener instanceof BuildListener) {
+            return isFiltered((AbstractBuild) build, (BuildListener) listener, address);
+        } else {
+            throw new AbstractMethodError("you must implement shouldFilter");
+        }
+    }
+
+    @Deprecated
+    public boolean isFiltered(AbstractBuild<?, ?> build, BuildListener listener, InternetAddress address) {
+        if (Util.isOverridden(MailAddressFilter.class, getClass(), "shouldFilter", Run.class, TaskListener.class, InternetAddress.class)) {
+            return shouldFilter(build, listener, address);
+        } else {
+            throw new AbstractMethodError("you must implement shouldFilter");
+        }
+    }
 
     /**
      * Returns a copy of the given set of recipients excluding addresses that our filtered out.
@@ -84,8 +102,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      * @param recipients
      * @return
      */
-    public static Set<InternetAddress> getFilteredRecipients(AbstractBuild<?, ?> build, BuildListener listener,
-            Set<InternetAddress> recipients) {
+    public static Set<InternetAddress> filterRecipients(Run<?,?> build, TaskListener listener, Set<InternetAddress> recipients) {
 
         Set<InternetAddress> rcp = new LinkedHashSet<InternetAddress>();
 
@@ -99,6 +116,12 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
 
     }
 
+    @Deprecated
+    public static Set<InternetAddress> getFilteredRecipients(AbstractBuild<?, ?> build, BuildListener listener,
+            Set<InternetAddress> recipients) {
+        return filterRecipients(build, listener, recipients);
+    }
+
     /**
      * Check if email address is to be excluded from recipient list by checking
      * with each {@link MailAddressFilter} extension
@@ -107,14 +130,14 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      * @param build
      * @return User address or null if resolution failed
      */
-    private static boolean isFilteredRecipient(InternetAddress address, BuildListener listener, AbstractBuild<?, ?> build) {
+    private static boolean isFilteredRecipient(InternetAddress address, TaskListener listener, Run<?, ?> build) {
 
         LOGGER.log(Level.FINE, "Checking for filtered email address for \"{0}\"", address);
         
         for (MailAddressFilter filter : allExtensions()) {
             LOGGER.log(Level.FINE, "Checking for filtered email address for \"{0}\" with \"{1}\"", 
                     new Object[] { address, filter.getClass().getName() });
-            if (filter.isFiltered(build, listener, address)) {
+            if (filter.shouldFilter(build, listener, address)) {
                 LOGGER.log(Level.FINE, "Filtered out email recipient \"{0}\"", address);
                 return true;
             }

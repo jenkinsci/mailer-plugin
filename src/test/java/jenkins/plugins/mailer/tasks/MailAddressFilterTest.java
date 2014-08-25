@@ -27,7 +27,6 @@ import hudson.ExtensionList;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.Hudson;
-import jenkins.plugins.mailer.tasks.MailAddressFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,7 +76,7 @@ public class MailAddressFilterTest {
 
         configure(Collections.<MailAddressFilter> emptyList());
 
-        Set<InternetAddress> filtered = MailAddressFilter.getFilteredRecipients(build, listener, rcp);
+        Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
         Assert.assertEquals(rcp.size(), filtered.size());
         for (InternetAddress a : rcp) {
@@ -96,11 +95,11 @@ public class MailAddressFilterTest {
         rcp.add(filteredAddress);
 
         MailAddressFilter filter = PowerMockito.mock(MailAddressFilter.class);
-        PowerMockito.when(filter.isFiltered(build, listener, filteredAddress)).thenReturn(true);
+        PowerMockito.when(filter.shouldFilter(build, listener, filteredAddress)).thenReturn(true);
 
         configure(Arrays.asList(filter));
 
-        Set<InternetAddress> filtered = MailAddressFilter.getFilteredRecipients(build, listener, rcp);
+        Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
         Assert.assertEquals(rcp.size() - 1, filtered.size());
 
