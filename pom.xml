@@ -7,7 +7,7 @@
   </parent>
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>1.12-SNAPSHOT</version>
+  <version>1.12-beta-1-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
