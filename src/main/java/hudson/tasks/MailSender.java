@@ -348,7 +348,7 @@ public class MailSender {
         MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?
-        msg.addHeader("X-Jenkins-Job", build.getParent().getDisplayName());
+        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
         msg.addHeader("X-Jenkins-Result", build.getResult().toString());
         msg.setContent("", "text/plain");
         msg.setFrom(Mailer.StringToAddress(JenkinsLocationConfiguration.get().getAdminAddress(), charset));
