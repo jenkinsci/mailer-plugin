@@ -350,6 +350,8 @@ public class MailSender {
         // but how do I obtain that?
         msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
         msg.addHeader("X-Jenkins-Result", build.getResult().toString());
+        // http://www.faqs.org/rfcs/rfc3834.html
+        msg.addHeader("Auto-submitted", "auto-generated");
         msg.setContent("", "text/plain");
         msg.setFrom(Mailer.StringToAddress(JenkinsLocationConfiguration.get().getAdminAddress(), charset));
         msg.setSentDate(new Date());
