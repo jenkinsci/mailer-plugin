@@ -41,8 +41,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.AddressException;
 
-import org.apache.commons.lang.StringUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -51,7 +49,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
-import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -345,22 +342,16 @@ public class MailSender {
     }
 
     private MimeMessage createEmptyMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
-        MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
+        MimeMessageBuilder mimeMessageBuilder = new MimeMessageBuilder()
+                .setRun(build)
+                .setCharset(charset)
+                .setListener(listener);
+        MimeMessage msg = mimeMessageBuilder.buildMimeMessage();
+
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?
-        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
-        msg.addHeader("X-Jenkins-Result", build.getResult().toString());
-        msg.setContent("", "text/plain");
-        msg.setFrom(Mailer.StringToAddress(JenkinsLocationConfiguration.get().getAdminAddress(), charset));
-        msg.setSentDate(new Date());
-        
-        String replyTo = Mailer.descriptor().getReplyToAddress();
-        if (StringUtils.isNotBlank(replyTo)) {
-            msg.setReplyTo(new Address[]{Mailer.StringToAddress(replyTo, charset)});
-        }
 
         Set<InternetAddress> rcp = new LinkedHashSet<InternetAddress>();
-        String defaultSuffix = Mailer.descriptor().getDefaultSuffix();
         StringTokenizer tokens = new StringTokenizer(recipients);
         while (tokens.hasMoreTokens()) {
             String address = tokens.nextToken();
@@ -375,18 +366,9 @@ public class MailSender {
                 includeCulpritsOf(up, (AbstractBuild) build, listener, rcp);
             } else {
                 // ordinary address
-            	
-            	// if not a valid address (i.e. no '@'), then try adding suffix
-            	if (!address.contains("@") && defaultSuffix != null && defaultSuffix.contains("@")) {
-            		address += defaultSuffix;
-            	}
-            	
-                try {
-                    rcp.add(Mailer.StringToAddress(address, charset));
-                } catch (AddressException e) {
-                    // report bad address, but try to send to other addresses
-                    listener.getLogger().println("Unable to send to address: " + address);
-                    e.printStackTrace(listener.error(e.getMessage()));
+                InternetAddress internetAddress = mimeMessageBuilder.toNormalizedAddress(address);
+                if (internetAddress != null) {
+                    rcp.add(internetAddress);
                 }
             }
         }
@@ -415,8 +397,7 @@ public class MailSender {
         if(pb!=null) {
             MailMessageIdAction b = pb.getAction(MailMessageIdAction.class);
             if(b!=null) {
-                msg.setHeader("In-Reply-To",b.messageId);
-                msg.setHeader("References",b.messageId);
+                MimeMessageBuilder.setInReplyTo(msg, b.messageId);
             }
         }
 
