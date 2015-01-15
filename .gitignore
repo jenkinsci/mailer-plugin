@@ -3,3 +3,10 @@ target/
 /.classpath
 /.project
 /work/
+
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea
+out
