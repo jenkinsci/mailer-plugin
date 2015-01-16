@@ -21,11 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.tasks;
+package jenkins.plugins.mailer.tasks;
 
-import hudson.model.FreeStyleProject;
-import hudson.model.Run;
+import hudson.tasks.Mailer;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,13 +34,9 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import javax.mail.Address;
-import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
 /**

@@ -22,10 +22,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.tasks;
+package jenkins.plugins.mailer.tasks;
 
 import hudson.model.TaskListener;
 import hudson.remoting.Base64;
+import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
