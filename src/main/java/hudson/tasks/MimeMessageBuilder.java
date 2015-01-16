@@ -25,9 +25,11 @@
 package hudson.tasks;
 
 import hudson.model.TaskListener;
+import hudson.remoting.Base64;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
 import javax.mail.Address;
 import javax.mail.Message;
@@ -36,6 +38,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -141,6 +144,8 @@ public class MimeMessageBuilder {
     public MimeMessage buildMimeMessage() throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
 
+        setJenkinsInstanceIdent(msg);
+
         msg.setContent("", mimeType);
         if (StringUtils.isNotBlank(from)) {
             msg.setFrom(toNormalizedAddress(from));
@@ -153,6 +158,13 @@ public class MimeMessageBuilder {
             msg.setReplyTo(new Address[]{toNormalizedAddress(replyTo)});
         }
         return msg;
+    }
+
+    private void setJenkinsInstanceIdent(MimeMessage msg) throws MessagingException {
+        if (Jenkins.getInstance() != null) {
+            RSAPublicKey publicKey = InstanceIdentity.get().getPublic();
+            msg.setHeader("X-Instance-Identity", Base64.encode(publicKey.getEncoded()));
+        }
     }
 
     public static void setInReplyTo(MimeMessage msg, String inReplyTo) throws MessagingException {

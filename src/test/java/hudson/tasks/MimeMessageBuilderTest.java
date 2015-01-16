@@ -26,6 +26,7 @@ package hudson.tasks;
 import hudson.model.FreeStyleProject;
 import hudson.model.Run;
 import jenkins.model.JenkinsLocationConfiguration;
+import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,6 +37,11 @@ import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -52,7 +58,7 @@ public class MimeMessageBuilderTest {
     }
 
     @Test
-    public void test_basic() throws UnsupportedEncodingException, MessagingException {
+    public void test_basic() throws Exception {
         MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
 
         messageBuilder.addRecipients("tom.xxxx@gmail.com, tom.yyyy@gmail.com");
@@ -74,5 +80,11 @@ public class MimeMessageBuilderTest {
         Assert.assertEquals(2, allRecipients.length);
         Assert.assertEquals("tom.xxxx@gmail.com", allRecipients[0].toString());
         Assert.assertEquals("tom.yyyy@gmail.com", allRecipients[1].toString());
+
+        // Make sure we can regen the instance identifier public key
+        String encodedIdent = mimeMessage.getHeader("X-Instance-Identity")[0];
+        byte[] image = Base64.decodeBase64(encodedIdent);
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(image));
+        Assert.assertNotNull(publicKey);
     }
 }
