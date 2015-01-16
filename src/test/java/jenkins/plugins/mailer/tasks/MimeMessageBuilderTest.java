@@ -25,16 +25,19 @@ package jenkins.plugins.mailer.tasks;
 
 import hudson.tasks.Mailer;
 import jenkins.model.JenkinsLocationConfiguration;
-import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.mock_javamail.Mailbox;
 
 import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -54,7 +57,7 @@ public class MimeMessageBuilderTest {
     }
 
     @Test
-    public void test_basic() throws Exception {
+    public void test_construction() throws Exception {
         MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
 
         messageBuilder.addRecipients("tom.xxxx@gmail.com, tom.yyyy@gmail.com");
@@ -82,5 +85,26 @@ public class MimeMessageBuilderTest {
         byte[] image = Base64.decodeBase64(encodedIdent);
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(image));
         Assert.assertNotNull(publicKey);
+    }
+
+    @Test
+    public void test_send() throws Exception {
+        MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
+
+        messageBuilder
+                .addRecipients("tom.xxxx@jenkins.com")
+                .setSubject("Hello")
+                .setBody("Testing email");
+
+        MimeMessage mimeMessage = messageBuilder.buildMimeMessage();
+
+        Mailbox.clearAll();
+        Transport.send(mimeMessage);
+
+        Mailbox mailbox = Mailbox.get("tom.xxxx@jenkins.com");
+        Assert.assertEquals(1, mailbox.getNewMessageCount());
+        Message message = mailbox.get(0);
+        Assert.assertEquals("Hello", message.getSubject());
+        Assert.assertEquals("Testing email", ((MimeMultipart)message.getContent()).getBodyPart(0).getContent().toString());
     }
 }

@@ -33,11 +33,15 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
 import javax.mail.Address;
+import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import java.io.UnsupportedEncodingException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
@@ -56,6 +60,8 @@ public class MimeMessageBuilder {
     private String defaultSuffix;
     private String from;
     private String replyTo;
+    private String subject;
+    private String body;
     private AddressFilter recipientFilter;
     private Set<InternetAddress> to = new LinkedHashSet<InternetAddress>();
     private Set<InternetAddress> cc = new LinkedHashSet<InternetAddress>();
@@ -70,14 +76,16 @@ public class MimeMessageBuilder {
     }
 
     public MimeMessageBuilder setCharset(String charset) {
-        assert charset != null;
-        this.charset = charset;
+        if (StringUtils.isNotBlank(charset)) {
+            this.charset = charset;
+        }
         return this;
     }
 
     public MimeMessageBuilder setMimeType(String mimeType) {
-        assert mimeType != null;
-        this.mimeType = mimeType;
+        if (StringUtils.isNotBlank(mimeType)) {
+            this.mimeType = mimeType;
+        }
         return this;
     }
 
@@ -92,14 +100,26 @@ public class MimeMessageBuilder {
     }
 
     public MimeMessageBuilder setFrom(String from) {
-        assert from != null;
-        this.from = from;
+        if (StringUtils.isNotBlank(from)) {
+            this.from = from;
+        }
         return this;
     }
 
     public MimeMessageBuilder setReplyTo(String replyTo) {
-        assert replyTo != null;
-        this.replyTo = replyTo;
+        if (StringUtils.isNotBlank(replyTo)) {
+            this.replyTo = replyTo;
+        }
+        return this;
+    }
+
+    public MimeMessageBuilder setSubject(String subject) {
+        this.subject = subject;
+        return this;
+    }
+
+    public MimeMessageBuilder setBody(String body) {
+        this.body = body;
         return this;
     }
 
@@ -153,6 +173,8 @@ public class MimeMessageBuilder {
         }
         msg.setSentDate(new Date());
 
+        addSubject(msg);
+        addBody(msg);
         addRecipients(msg);
 
         if (StringUtils.isNotBlank(replyTo)) {
@@ -178,6 +200,23 @@ public class MimeMessageBuilder {
 
     public static interface AddressFilter {
         Set<InternetAddress> apply(Set<InternetAddress> recipients);
+    }
+
+    private void addSubject(MimeMessage msg) throws MessagingException {
+        if (subject != null) {
+            msg.setSubject(subject);
+        }
+    }
+
+    private void addBody(MimeMessage msg) throws MessagingException {
+        if (body != null) {
+            Multipart multipart = new MimeMultipart();
+            BodyPart bodyPart = new MimeBodyPart();
+
+            bodyPart.setContent(body, mimeType);
+            multipart.addBodyPart(bodyPart);
+            msg.setContent(multipart);
+        }
     }
 
     private void addRecipients(MimeMessage msg) throws UnsupportedEncodingException, MessagingException {
