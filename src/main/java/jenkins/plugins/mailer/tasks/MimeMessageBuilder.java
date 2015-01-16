@@ -134,21 +134,20 @@ public class MimeMessageBuilder {
     }
 
     public MimeMessageBuilder addRecipients(String recipients, Message.RecipientType recipientType) throws UnsupportedEncodingException {
-        assert recipients != null;
-        assert recipientType != null;
+        if (StringUtils.isNotBlank(recipients) && recipientType != null) {
+            StringTokenizer tokens = new StringTokenizer(recipients);
+            while (tokens.hasMoreTokens()) {
+                String addressToken = tokens.nextToken();
+                InternetAddress internetAddress = toNormalizedAddress(addressToken);
 
-        StringTokenizer tokens = new StringTokenizer(recipients);
-        while (tokens.hasMoreTokens()) {
-            String addressToken = tokens.nextToken();
-            InternetAddress internetAddress = toNormalizedAddress(addressToken);
-
-            if (internetAddress != null) {
-                if (recipientType == Message.RecipientType.TO) {
-                    to.add(internetAddress);
-                } else if (recipientType == Message.RecipientType.CC) {
-                    cc.add(internetAddress);
-                } else if (recipientType == Message.RecipientType.BCC) {
-                    bcc.add(internetAddress);
+                if (internetAddress != null) {
+                    if (recipientType == Message.RecipientType.TO) {
+                        to.add(internetAddress);
+                    } else if (recipientType == Message.RecipientType.CC) {
+                        cc.add(internetAddress);
+                    } else if (recipientType == Message.RecipientType.BCC) {
+                        bcc.add(internetAddress);
+                    }
                 }
             }
         }
