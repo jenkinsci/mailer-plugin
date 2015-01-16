@@ -343,10 +343,12 @@ public class MailSender {
 
     private MimeMessage createEmptyMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
         MimeMessageBuilder mimeMessageBuilder = new MimeMessageBuilder()
-                .setRun(build)
                 .setCharset(charset)
                 .setListener(listener);
         MimeMessage msg = mimeMessageBuilder.buildMimeMessage();
+
+        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
+        msg.addHeader("X-Jenkins-Result", build.getResult().toString());
 
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?

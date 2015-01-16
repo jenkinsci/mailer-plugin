@@ -24,7 +24,6 @@
  */
 package hudson.tasks;
 
-import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -47,9 +46,6 @@ import java.util.StringTokenizer;
  */
 public class MimeMessageBuilder {
 
-    public static final String X_JENKINS_JOB = "X-Jenkins-Job";
-    public static final String X_JENKINS_RESULT = "X-Jenkins-Result";
-
     private String charset = "UTF-8";
     private String mimeType = "text/plain";
     private TaskListener listener;
@@ -57,7 +53,6 @@ public class MimeMessageBuilder {
     private String from;
     private String replyTo;
     private String recipients;
-    private Run<?, ?> run;
 
     public MimeMessageBuilder() {
         if (Jenkins.getInstance() != null) {
@@ -82,12 +77,6 @@ public class MimeMessageBuilder {
     public MimeMessageBuilder setListener(TaskListener listener) {
         assert listener != null;
         this.listener = listener;
-        return this;
-    }
-
-    public MimeMessageBuilder setRun(Run<?, ?> run) {
-        assert run != null;
-        this.run = run;
         return this;
     }
 
@@ -130,7 +119,6 @@ public class MimeMessageBuilder {
         }
         msg.setSentDate(new Date());
 
-        addRunHeaders(msg);
         addRecipients(msg);
 
         if (StringUtils.isNotBlank(replyTo)) {
@@ -171,13 +159,6 @@ public class MimeMessageBuilder {
         }
         msg.setHeader("In-Reply-To", inReplyTo);
         msg.setHeader("References", inReplyTo);
-    }
-
-    private void addRunHeaders(MimeMessage msg) throws MessagingException {
-        if (run != null) {
-            msg.addHeader(X_JENKINS_JOB, run.getParent().getFullName());
-            msg.addHeader(X_JENKINS_RESULT, run.getResult().toString());
-        }
     }
 
     private void addRecipients(MimeMessage msg) throws UnsupportedEncodingException, MessagingException {
