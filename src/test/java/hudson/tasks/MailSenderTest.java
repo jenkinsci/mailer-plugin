@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 
 import org.junit.Before;
@@ -114,12 +113,10 @@ public class MailSenderTest {
         Collection<AbstractProject> upstreamProjects = Collections.singleton(this.upstreamProject);
         
         MailSender sender = new MailSender("", false, false, "UTF-8", upstreamProjects);
-        Set<InternetAddress> recipients = Sets.newHashSet();
-        sender.includeCulpritsOf(upstreamProject, build, listener, recipients);
+        String emailList = sender.getCulpritsOfEmailList(upstreamProject, build, listener);
         
-        assertEquals(2, recipients.size());
-        assertFalse(recipients.contains(new InternetAddress("this.one.should.not.be.included@example.com")));
-        assertTrue(recipients.contains(new InternetAddress("this.one.must.be.included@example.com")));
-        assertTrue(recipients.contains(new InternetAddress("this.one.must.be.included.too@example.com")));
+        assertFalse(emailList.contains("this.one.should.not.be.included@example.com"));
+        assertTrue(emailList.contains("this.one.must.be.included@example.com"));
+        assertTrue(emailList.contains("this.one.must.be.included.too@example.com"));
     }
 }

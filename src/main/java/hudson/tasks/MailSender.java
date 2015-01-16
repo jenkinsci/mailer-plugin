@@ -34,7 +34,6 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.MailAddressFilter;
 
 import javax.mail.Address;
-import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
@@ -341,19 +340,14 @@ public class MailSender {
         return msg;
     }
 
-    private MimeMessage createEmptyMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
-        MimeMessageBuilder mimeMessageBuilder = new MimeMessageBuilder()
+    private MimeMessage createEmptyMail(final Run<?, ?> build, final TaskListener listener) throws MessagingException, UnsupportedEncodingException {
+        MimeMessageBuilder messageBuilder = new MimeMessageBuilder()
                 .setCharset(charset)
                 .setListener(listener);
-        MimeMessage msg = mimeMessageBuilder.buildMimeMessage();
-
-        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
-        msg.addHeader("X-Jenkins-Result", build.getResult().toString());
 
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?
 
-        Set<InternetAddress> rcp = new LinkedHashSet<InternetAddress>();
         StringTokenizer tokens = new StringTokenizer(recipients);
         while (tokens.hasMoreTokens()) {
             String address = tokens.nextToken();
@@ -365,18 +359,15 @@ public class MailSender {
                     listener.getLogger().println("No such project exist: "+projectName);
                     continue;
                 }
-                includeCulpritsOf(up, (AbstractBuild) build, listener, rcp);
+                messageBuilder.addRecipients(getCulpritsOfEmailList(up, (AbstractBuild) build, listener));
             } else {
                 // ordinary address
-                InternetAddress internetAddress = mimeMessageBuilder.toNormalizedAddress(address);
-                if (internetAddress != null) {
-                    rcp.add(internetAddress);
-                }
+                messageBuilder.addRecipients(address);
             }
         }
 
         for (AbstractProject project : includeUpstreamCommitters) {
-            includeCulpritsOf(project, (AbstractBuild) build, listener, rcp);
+            messageBuilder.addRecipients(getCulpritsOfEmailList(project, (AbstractBuild) build, listener));
         }
 
         if (sendToIndividuals && build instanceof AbstractBuild) {
@@ -385,15 +376,21 @@ public class MailSender {
             if(debug)
                 listener.getLogger().println("Trying to send e-mails to individuals who broke the build. sizeof(culprits)=="+culprits.size());
 
-            rcp.addAll(buildCulpritList(listener,culprits));
+            messageBuilder.addRecipients(getUserEmailList(listener, culprits));
         }
         
         // set recipients after filtering out recipients that should not receive emails
-        Set<InternetAddress> filteredRecipients = MailAddressFilter.filterRecipients(build, listener, rcp);
-        if (!filteredRecipients.isEmpty()) {
-            msg.setRecipients(Message.RecipientType.TO,
-                    filteredRecipients.toArray(new InternetAddress[filteredRecipients.size()]));
-        }
+        messageBuilder.setRecipientFilter(new MimeMessageBuilder.AddressFilter() {
+            @Override
+            public Set<InternetAddress> apply(Set<InternetAddress> recipients) {
+                return MailAddressFilter.filterRecipients(build, listener, recipients);
+            }
+        });
+
+        MimeMessage msg = messageBuilder.buildMimeMessage();
+
+        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
+        msg.addHeader("X-Jenkins-Result", build.getResult().toString());
 
         Run<?, ?> pb = build.getPreviousBuild();
         if(pb!=null) {
@@ -406,44 +403,53 @@ public class MailSender {
         return msg;
     }
 
-    void includeCulpritsOf(AbstractProject upstreamProject, AbstractBuild<?, ?> currentBuild, TaskListener listener, Set<InternetAddress> recipientList) throws AddressException, UnsupportedEncodingException {
+    String getCulpritsOfEmailList(AbstractProject upstreamProject, AbstractBuild<?, ?> currentBuild, TaskListener listener) throws AddressException, UnsupportedEncodingException {
         AbstractBuild<?,?> upstreamBuild = currentBuild.getUpstreamRelationshipBuild(upstreamProject);
         AbstractBuild<?,?> previousBuild = currentBuild.getPreviousBuild();
         AbstractBuild<?,?> previousBuildUpstreamBuild = previousBuild!=null ? previousBuild.getUpstreamRelationshipBuild(upstreamProject) : null;
         if(previousBuild==null && upstreamBuild==null && previousBuildUpstreamBuild==null) {
             listener.getLogger().println("Unable to compute the changesets in "+ upstreamProject +". Is the fingerprint configured?");
-            return;
+            return null;
         }
         if(previousBuild==null || upstreamBuild==null || previousBuildUpstreamBuild==null) {
             listener.getLogger().println("Unable to compute the changesets in "+ upstreamProject);
-            return;
+            return null;
         }
         AbstractBuild<?,?> b=previousBuildUpstreamBuild;
+
+        StringBuilder culpritEmails = new StringBuilder();
         do {
             b = b.getNextBuild();
             if (b != null) {
-                recipientList.addAll(buildCulpritList(listener,b.getCulprits()));
+                String userEmails = getUserEmailList(listener, b.getCulprits());
+                if (userEmails != null) {
+                    if (culpritEmails.length() > 0) {
+                        culpritEmails.append(",");
+                    }
+                    culpritEmails.append(userEmails);
+                }
             }
         } while ( b != upstreamBuild && b != null );
+
+        return culpritEmails.toString();
     }
 
-    private Set<InternetAddress> buildCulpritList(TaskListener listener, Set<User> culprits) throws AddressException, UnsupportedEncodingException {
-        Set<InternetAddress> r = new HashSet<InternetAddress>();
-        for (User a : culprits) {
+    private String getUserEmailList(TaskListener listener, Set<User> users) throws AddressException, UnsupportedEncodingException {
+        StringBuilder userEmails = new StringBuilder();
+        for (User a : users) {
             String adrs = Util.fixEmpty(a.getProperty(Mailer.UserProperty.class).getAddress());
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
-            if (adrs != null)
-            	try {
-                r.add(Mailer.StringToAddress(adrs, charset));
-                } catch(AddressException e) {
-                    listener.getLogger().println("Invalid address: " + adrs);
+            if (adrs != null) {
+                if (userEmails.length() > 0) {
+                    userEmails.append(",");
                 }
-            else {
+                userEmails.append(adrs);
+            } else {
                 listener.getLogger().println(Messages.MailSender_NoAddress(a.getFullName()));
             }
         }
-        return r;
+        return userEmails.toString();
     }
 
     private String getSubject(Run<?, ?> build, String caption) {

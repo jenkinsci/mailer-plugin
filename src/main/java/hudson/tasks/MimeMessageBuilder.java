@@ -52,7 +52,10 @@ public class MimeMessageBuilder {
     private String defaultSuffix;
     private String from;
     private String replyTo;
-    private String recipients;
+    private AddressFilter recipientFilter;
+    private Set<InternetAddress> to = new LinkedHashSet<InternetAddress>();
+    private Set<InternetAddress> cc = new LinkedHashSet<InternetAddress>();
+    private Set<InternetAddress> bcc = new LinkedHashSet<InternetAddress>();
 
     public MimeMessageBuilder() {
         if (Jenkins.getInstance() != null) {
@@ -75,13 +78,11 @@ public class MimeMessageBuilder {
     }
 
     public MimeMessageBuilder setListener(TaskListener listener) {
-        assert listener != null;
         this.listener = listener;
         return this;
     }
 
     public MimeMessageBuilder setDefaultSuffix(String defaultSuffix) {
-        assert defaultSuffix != null;
         this.defaultSuffix = defaultSuffix;
         return this;
     }
@@ -98,9 +99,36 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder setRecipients(String recipients) {
+    public MimeMessageBuilder setRecipientFilter(AddressFilter recipientFilter) {
+        this.recipientFilter = recipientFilter;
+        return this;
+    }
+
+    public MimeMessageBuilder addRecipients(String recipients) throws UnsupportedEncodingException {
+        addRecipients(recipients, Message.RecipientType.TO);
+        return this;
+    }
+
+    public MimeMessageBuilder addRecipients(String recipients, Message.RecipientType recipientType) throws UnsupportedEncodingException {
         assert recipients != null;
-        this.recipients = recipients;
+        assert recipientType != null;
+
+        StringTokenizer tokens = new StringTokenizer(recipients);
+        while (tokens.hasMoreTokens()) {
+            String addressToken = tokens.nextToken();
+            InternetAddress internetAddress = toNormalizedAddress(addressToken);
+
+            if (internetAddress != null) {
+                if (recipientType == Message.RecipientType.TO) {
+                    to.add(internetAddress);
+                } else if (recipientType == Message.RecipientType.CC) {
+                    cc.add(internetAddress);
+                } else if (recipientType == Message.RecipientType.BCC) {
+                    bcc.add(internetAddress);
+                }
+            }
+        }
+
         return this;
     }
 
@@ -127,7 +155,37 @@ public class MimeMessageBuilder {
         return msg;
     }
 
-    public InternetAddress toNormalizedAddress(String address) throws UnsupportedEncodingException {
+    public static void setInReplyTo(MimeMessage msg, String inReplyTo) throws MessagingException {
+        if (msg == null || inReplyTo == null) {
+            return;
+        }
+        msg.setHeader("In-Reply-To", inReplyTo);
+        msg.setHeader("References", inReplyTo);
+    }
+
+    public static interface AddressFilter {
+        Set<InternetAddress> apply(Set<InternetAddress> recipients);
+    }
+
+    private void addRecipients(MimeMessage msg) throws UnsupportedEncodingException, MessagingException {
+        addRecipients(msg, to, Message.RecipientType.TO);
+        addRecipients(msg, cc, Message.RecipientType.CC);
+        addRecipients(msg, bcc, Message.RecipientType.BCC);
+    }
+    private void addRecipients(MimeMessage msg, Set<InternetAddress> recipientList, Message.RecipientType recipientType) throws UnsupportedEncodingException, MessagingException {
+        if (recipientList.isEmpty()) {
+            return;
+        }
+
+        if (recipientFilter != null) {
+            Set<InternetAddress> filteredList = recipientFilter.apply(recipientList);
+            msg.setRecipients(recipientType, filteredList.toArray(new InternetAddress[filteredList.size()]));
+        } else {
+            msg.setRecipients(recipientType, recipientList.toArray(new InternetAddress[recipientList.size()]));
+        }
+    }
+
+    private InternetAddress toNormalizedAddress(String address) throws UnsupportedEncodingException {
         if (address == null) {
             return null;
         }
@@ -150,30 +208,6 @@ public class MimeMessageBuilder {
                 e.printStackTrace(listener.error(e.getMessage()));
             }
             return null;
-        }
-    }
-
-    public static void setInReplyTo(MimeMessage msg, String inReplyTo) throws MessagingException {
-        if (msg == null || inReplyTo == null) {
-            return;
-        }
-        msg.setHeader("In-Reply-To", inReplyTo);
-        msg.setHeader("References", inReplyTo);
-    }
-
-    private void addRecipients(MimeMessage msg) throws UnsupportedEncodingException, MessagingException {
-        if (recipients != null) {
-            Set<InternetAddress> rcp = new LinkedHashSet<InternetAddress>();
-            StringTokenizer tokens = new StringTokenizer(recipients);
-
-            while (tokens.hasMoreTokens()) {
-                String address = tokens.nextToken();
-                rcp.add(toNormalizedAddress(address));
-            }
-
-            if (!rcp.isEmpty()) {
-                msg.setRecipients(Message.RecipientType.TO, rcp.toArray(new InternetAddress[rcp.size()]));
-            }
         }
     }
 }

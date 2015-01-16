@@ -55,7 +55,7 @@ public class MimeMessageBuilderTest {
     public void test_basic() throws UnsupportedEncodingException, MessagingException {
         MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
 
-        messageBuilder.setRecipients("tom.xxxx@gmail.com, tom.yyyy@gmail.com");
+        messageBuilder.addRecipients("tom.xxxx@gmail.com, tom.yyyy@gmail.com");
         MimeMessage mimeMessage = messageBuilder.buildMimeMessage();
 
         // check from and reply-to
@@ -74,24 +74,5 @@ public class MimeMessageBuilderTest {
         Assert.assertEquals(2, allRecipients.length);
         Assert.assertEquals("tom.xxxx@gmail.com", allRecipients[0].toString());
         Assert.assertEquals("tom.yyyy@gmail.com", allRecipients[1].toString());
-    }
-
-
-    @Test
-    public void test_with_run() throws Exception {
-        FreeStyleProject job = jenkinsRule.jenkins.createProject(FreeStyleProject.class, "MyJob");
-        Run<?, ?> run = jenkinsRule.assertBuildStatusSuccess(job.scheduleBuild2(0));
-
-        // create a builder and set the Run instance on it...
-        MimeMessageBuilder messageBuilder = new MimeMessageBuilder().setRun(run);
-        MimeMessage mimeMessage = messageBuilder.buildMimeMessage();
-
-        String[] jobHeader = mimeMessage.getHeader(MimeMessageBuilder.X_JENKINS_JOB);
-        Assert.assertEquals(1, jobHeader.length);
-        Assert.assertEquals("MyJob", jobHeader[0]);
-
-        String[] resultHeader = mimeMessage.getHeader(MimeMessageBuilder.X_JENKINS_RESULT);
-        Assert.assertEquals(1, resultHeader.length);
-        Assert.assertEquals("SUCCESS", resultHeader[0]);
     }
 }
