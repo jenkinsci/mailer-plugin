@@ -38,6 +38,7 @@
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>instance-identity</artifactId>
       <version>1.4</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jvnet.mock-javamail</groupId>
