@@ -32,6 +32,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
+import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -75,17 +76,13 @@ public class MimeMessageBuilder {
         }
     }
 
-    public MimeMessageBuilder setCharset(String charset) {
-        if (StringUtils.isNotBlank(charset)) {
-            this.charset = charset;
-        }
+    public MimeMessageBuilder setCharset(@Nonnull String charset) {
+        this.charset = charset;
         return this;
     }
 
-    public MimeMessageBuilder setMimeType(String mimeType) {
-        if (StringUtils.isNotBlank(mimeType)) {
-            this.mimeType = mimeType;
-        }
+    public MimeMessageBuilder setMimeType(@Nonnull String mimeType) {
+        this.mimeType = mimeType;
         return this;
     }
 
@@ -94,31 +91,27 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder setDefaultSuffix(String defaultSuffix) {
+    public MimeMessageBuilder setDefaultSuffix(@Nonnull String defaultSuffix) {
         this.defaultSuffix = defaultSuffix;
         return this;
     }
 
-    public MimeMessageBuilder setFrom(String from) {
-        if (StringUtils.isNotBlank(from)) {
-            this.from = from;
-        }
+    public MimeMessageBuilder setFrom(@Nonnull String from) {
+        this.from = from;
         return this;
     }
 
-    public MimeMessageBuilder setReplyTo(String replyTo) {
-        if (StringUtils.isNotBlank(replyTo)) {
-            this.replyTo = replyTo;
-        }
+    public MimeMessageBuilder setReplyTo(@Nonnull String replyTo) {
+        this.replyTo = replyTo;
         return this;
     }
 
-    public MimeMessageBuilder setSubject(String subject) {
+    public MimeMessageBuilder setSubject(@Nonnull String subject) {
         this.subject = subject;
         return this;
     }
 
-    public MimeMessageBuilder setBody(String body) {
+    public MimeMessageBuilder setBody(@Nonnull String body) {
         this.body = body;
         return this;
     }
@@ -128,26 +121,24 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder addRecipients(String recipients) throws UnsupportedEncodingException {
+    public MimeMessageBuilder addRecipients(@Nonnull String recipients) throws UnsupportedEncodingException {
         addRecipients(recipients, Message.RecipientType.TO);
         return this;
     }
 
-    public MimeMessageBuilder addRecipients(String recipients, Message.RecipientType recipientType) throws UnsupportedEncodingException {
-        if (StringUtils.isNotBlank(recipients) && recipientType != null) {
-            StringTokenizer tokens = new StringTokenizer(recipients);
-            while (tokens.hasMoreTokens()) {
-                String addressToken = tokens.nextToken();
-                InternetAddress internetAddress = toNormalizedAddress(addressToken);
+    public MimeMessageBuilder addRecipients(@Nonnull String recipients, @Nonnull Message.RecipientType recipientType) throws UnsupportedEncodingException {
+        StringTokenizer tokens = new StringTokenizer(recipients);
+        while (tokens.hasMoreTokens()) {
+            String addressToken = tokens.nextToken();
+            InternetAddress internetAddress = toNormalizedAddress(addressToken);
 
-                if (internetAddress != null) {
-                    if (recipientType == Message.RecipientType.TO) {
-                        to.add(internetAddress);
-                    } else if (recipientType == Message.RecipientType.CC) {
-                        cc.add(internetAddress);
-                    } else if (recipientType == Message.RecipientType.BCC) {
-                        bcc.add(internetAddress);
-                    }
+            if (internetAddress != null) {
+                if (recipientType == Message.RecipientType.TO) {
+                    to.add(internetAddress);
+                } else if (recipientType == Message.RecipientType.CC) {
+                    cc.add(internetAddress);
+                } else if (recipientType == Message.RecipientType.BCC) {
+                    bcc.add(internetAddress);
                 }
             }
         }
@@ -189,10 +180,7 @@ public class MimeMessageBuilder {
         }
     }
 
-    public static void setInReplyTo(MimeMessage msg, String inReplyTo) throws MessagingException {
-        if (msg == null || inReplyTo == null) {
-            return;
-        }
+    public static void setInReplyTo(@Nonnull MimeMessage msg, @Nonnull String inReplyTo) throws MessagingException {
         msg.setHeader("In-Reply-To", inReplyTo);
         msg.setHeader("References", inReplyTo);
     }
