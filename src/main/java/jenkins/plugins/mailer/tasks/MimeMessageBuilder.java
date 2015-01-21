@@ -49,11 +49,15 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MimeMessageBuilder {
+
+    private static final Logger LOGGER = Logger.getLogger(MimeMessageBuilder.class.getName());
 
     private String charset = "UTF-8";
     private String mimeType = "text/plain";
@@ -175,8 +179,16 @@ public class MimeMessageBuilder {
 
     private void setJenkinsInstanceIdent(MimeMessage msg) throws MessagingException {
         if (Jenkins.getInstance() != null) {
-            RSAPublicKey publicKey = InstanceIdentity.get().getPublic();
-            msg.setHeader("X-Instance-Identity", Base64.encode(publicKey.getEncoded()));
+            String encodedIdentity;
+            try {
+                RSAPublicKey publicKey = InstanceIdentity.get().getPublic();
+                encodedIdentity = Base64.encode(publicKey.getEncoded());
+            } catch (Throwable t) {
+                // Ignore. Just don't add the identity header.
+                 logError("Failed to set Jenkins Identity header on email.", t);
+                return;
+            }
+            msg.setHeader("X-Instance-Identity", encodedIdentity);
         }
     }
 
@@ -242,10 +254,16 @@ public class MimeMessageBuilder {
             return Mailer.StringToAddress(address, charset);
         } catch (AddressException e) {
             // report bad address, but try to send to other addresses
-            if (listener != null) {
-                e.printStackTrace(listener.error("Unable to send to address: " + address));
-            }
+            logError("Unable to send to address: " + address, e);
             return null;
+        }
+    }
+
+    private void logError(String message, Throwable t) {
+        if (listener != null) {
+            t.printStackTrace(listener.error(message));
+        } else {
+            LOGGER.log(Level.WARNING, message, t);
         }
     }
 }
