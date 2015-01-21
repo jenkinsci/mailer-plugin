@@ -243,8 +243,7 @@ public class MimeMessageBuilder {
         } catch (AddressException e) {
             // report bad address, but try to send to other addresses
             if (listener != null) {
-                listener.getLogger().println("Unable to send to address: " + address);
-                e.printStackTrace(listener.error(e.getMessage()));
+                e.printStackTrace(listener.error("Unable to send to address: " + address));
             }
             return null;
         }
