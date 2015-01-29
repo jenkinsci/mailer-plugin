@@ -30,6 +30,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.mock_javamail.Mailbox;
 
@@ -106,5 +108,20 @@ public class MimeMessageBuilderTest {
         Message message = mailbox.get(0);
         Assert.assertEquals("Hello", message.getSubject());
         Assert.assertEquals("Testing email", ((MimeMultipart)message.getContent()).getBodyPart(0).getContent().toString());
+    }
+
+    @Test
+    @Issue("JENKINS-26606")
+    public void test_addRecipients_tokenizer() throws Exception {
+        MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
+
+        messageBuilder.addRecipients("tom.xxxx@gmail.com,tom.yyyy@gmail.com tom.zzzz@gmail.com");
+        MimeMessage mimeMessage = messageBuilder.buildMimeMessage();
+
+        Address[] recipients = mimeMessage.getAllRecipients();
+        Assert.assertEquals(3, recipients.length);
+        Assert.assertEquals("tom.xxxx@gmail.com", recipients[0].toString());
+        Assert.assertEquals("tom.yyyy@gmail.com", recipients[1].toString());
+        Assert.assertEquals("tom.zzzz@gmail.com", recipients[2].toString());
     }
 }

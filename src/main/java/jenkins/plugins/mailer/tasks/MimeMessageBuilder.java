@@ -131,7 +131,7 @@ public class MimeMessageBuilder {
     }
 
     public MimeMessageBuilder addRecipients(@Nonnull String recipients, @Nonnull Message.RecipientType recipientType) throws UnsupportedEncodingException {
-        StringTokenizer tokens = new StringTokenizer(recipients);
+        StringTokenizer tokens = new StringTokenizer(recipients, " \t\n\r\f,");
         while (tokens.hasMoreTokens()) {
             String addressToken = tokens.nextToken();
             InternetAddress internetAddress = toNormalizedAddress(addressToken);
