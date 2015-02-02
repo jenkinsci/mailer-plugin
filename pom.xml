@@ -7,7 +7,7 @@
   </parent>
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>1.14</version>
+  <version>1.15-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
@@ -80,7 +80,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <tag>mailer-1.14</tag>
+    <tag>HEAD</tag>
   </scm>
   <repositories>
     <repository>
