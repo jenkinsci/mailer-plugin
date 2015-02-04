@@ -25,21 +25,24 @@ package jenkins.plugins.mailer.tasks;
 
 import hudson.tasks.Mailer;
 import jenkins.model.JenkinsLocationConfiguration;
+
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.mock_javamail.Mailbox;
+import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+
+import java.io.StringWriter;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -87,6 +90,43 @@ public class MimeMessageBuilderTest {
         byte[] image = Base64.decodeBase64(encodedIdent);
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(image));
         Assert.assertNotNull(publicKey);
+    }
+
+    @Test
+    @Issue("JENKINS-26758")
+    public void test_charset_utf8() throws Exception {
+        MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
+        messageBuilder.setMimeType("text/html");
+        messageBuilder.setBody("Synthèse");
+  
+        MimeMessage message = messageBuilder.buildMimeMessage();
+        message.saveChanges();
+
+        StringWriter sw = new StringWriter();
+        ((MimeMultipart)message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
+        Assert.assertEquals("Content-Type: text/html; charset=UTF-8\n"
+                + "Content-Transfer-Encoding: quoted-printable\n\n"
+                + "Synth=C3=A8se", 
+                sw.toString().replaceAll("\r\n?", "\n"));
+    }
+
+    @Test
+    @Issue("JENKINS-26758")
+    public void test_charset_iso_8859_1() throws Exception {
+        MimeMessageBuilder messageBuilder = new MimeMessageBuilder();
+        messageBuilder.setMimeType("text/html");
+        messageBuilder.setCharset("ISO-8859-1");
+        messageBuilder.setBody("Synthèse");
+  
+        MimeMessage message = messageBuilder.buildMimeMessage();
+        message.saveChanges();
+
+        StringWriter sw = new StringWriter();
+        ((MimeMultipart)message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
+        Assert.assertEquals("Content-Type: text/html; charset=ISO-8859-1\n"
+                + "Content-Transfer-Encoding: quoted-printable\n\n"
+                + "Synth=E8se", 
+                sw.toString().replaceAll("\r\n?", "\n"));
     }
 
     @Test
