@@ -446,6 +446,9 @@ public class MailSender {
                     userEmails.append(",");
                 }
                 userEmails.append(adrs);
+            } else if (!a.getId().isEmpty()){
+                /* the user is a single-segment (domain-less) email address  */
+                userEmails.append(a.getId());
             } else {
                 listener.getLogger().println(Messages.MailSender_NoAddress(a.getFullName()));
             }
