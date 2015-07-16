@@ -259,7 +259,7 @@ public class MimeMessageBuilder {
         }
 
         try {
-            return Mailer.StringToAddress(address, charset);
+            return Mailer.stringToAddress(address, charset);
         } catch (AddressException e) {
             // report bad address, but try to send to other addresses
             logError("Unable to send to address: " + address, e);

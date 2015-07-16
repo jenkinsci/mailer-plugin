@@ -24,6 +24,7 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.EnvVars;
@@ -55,11 +56,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -82,6 +85,7 @@ import org.kohsuke.stapler.export.Exported;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 
 /**
  * {@link Publisher} that sends the build result in e-mail.
@@ -174,7 +178,29 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     }
 
     private static Pattern ADDRESS_PATTERN = Pattern.compile("\\s*([^<]*)<([^>]+)>\\s*");
+    
+    /**
+     * @deprecated Use {@link #stringToAddress(java.lang.String, java.lang.String)}.
+     */
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("1.16")
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "It's deprecated and required for API compatibility")
     public static InternetAddress StringToAddress(String strAddress, String charset) throws AddressException, UnsupportedEncodingException {
+        return stringToAddress(strAddress, charset);
+    }
+    
+    /**
+     * Converts a string to {@link InternetAddress}.
+     * @param strAddress Address string
+     * @param charset Charset (encoding) to be used
+     * @return {@link InternetAddress} for the specified string
+     * @throws AddressException Malformed address
+     * @throws UnsupportedEncodingException Unsupported encoding
+     * @since TODO
+     */
+    public static @Nonnull InternetAddress stringToAddress(@Nonnull String strAddress, 
+            @Nonnull String charset) throws AddressException, UnsupportedEncodingException {
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
         if(!m.matches()) {
             return new InternetAddress(strAddress);
@@ -191,10 +217,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      */
     @Restricted(NoExternalUse.class)
     @RestrictedSince("1.355")
+    @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Deprecated API field")
     public static DescriptorImpl DESCRIPTOR;
 
     public static DescriptorImpl descriptor() {
-        return Jenkins.getInstance().getDescriptorByType(Mailer.DescriptorImpl.class);
+        final Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            throw new IllegalStateException("Jenkins instance is not ready");
+        }
+        return jenkins.getDescriptorByType(Mailer.DescriptorImpl.class);
     }
 
     @Extension
@@ -264,9 +295,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * Used to keep track of number test e-mails.
          */
-        private static transient int testEmailCount = 0;
-        
+        private static transient AtomicInteger testEmailCount = new AtomicInteger(0);
 
+        @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", 
+                justification = "Writing to a deprecated field")
         public DescriptorImpl() {
             load();
             DESCRIPTOR = this;
@@ -509,20 +541,25 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException, ServletException, InterruptedException {
             try {
+                final Jenkins jenkins = Jenkins.getInstance();
+                if (jenkins == null) {
+                    throw new IOException("Jenkins instance is not ready");
+                }
+                
                 if (!useSMTPAuth) {
                     smtpAuthUserName = null;
                     smtpAuthPasswordSecret = null;
                 }
                 
                 MimeMessage msg = new MimeMessage(createSession(smtpServer, smtpPort, useSsl, smtpAuthUserName, smtpAuthPasswordSecret));
-                msg.setSubject(Messages.Mailer_TestMail_Subject(++testEmailCount), charset);
-                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount, Jenkins.getInstance().getDisplayName()), charset);
-                msg.setFrom(StringToAddress(adminAddress, charset));
+                msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
+                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
+                msg.setFrom(stringToAddress(adminAddress, charset));
                 if (StringUtils.isNotBlank(replyToAddress)) {
-                    msg.setReplyTo(new Address[]{StringToAddress(replyToAddress, charset)});
+                    msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
                 }
                 msg.setSentDate(new Date());
-                msg.setRecipient(Message.RecipientType.TO, StringToAddress(sendTestMailTo, charset));
+                msg.setRecipient(Message.RecipientType.TO, stringToAddress(sendTestMailTo, charset));
 
                 Transport.send(msg);                
                 return FormValidation.ok(Messages.Mailer_EmailSentSuccessfully());
@@ -609,6 +646,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
     /**
      * Debug probe point to be activated by the scripting console.
+     * @deprecated This hack may be removed in future versions
      */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", 
+            justification = "It may used for debugging purposes. We have to keep it for the sake of the binary copatibility")
+    @Deprecated
     public static boolean debug = false;
 }
