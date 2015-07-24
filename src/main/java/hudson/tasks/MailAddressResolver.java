@@ -220,7 +220,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Returns all the registered {@link MailAddressResolver} descriptors.
      */
     public static ExtensionList<MailAddressResolver> all() {
-        return Jenkins.getInstance().getExtensionList(MailAddressResolver.class);
+        return ExtensionList.lookup(MailAddressResolver.class);
     }
 
     private static final Logger LOGGER = Logger.getLogger(MailAddressResolver.class.getName());

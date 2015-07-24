@@ -24,6 +24,7 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.Functions;
@@ -49,6 +50,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -355,7 +357,12 @@ public class MailSender {
             if (build instanceof AbstractBuild && address.startsWith("upstream-individuals:")) {
                 // people who made a change in the upstream
                 String projectName = address.substring("upstream-individuals:".length());
-                AbstractProject up = Jenkins.getInstance().getItem(projectName, build.getParent(), AbstractProject.class);
+                final Jenkins jenkins = Jenkins.getInstance();
+                if (jenkins == null) {
+                    listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
+                    continue;
+                }
+                final AbstractProject up = jenkins.getItem(projectName, build.getParent(), AbstractProject.class);
                 if(up==null) {
                     listener.getLogger().println("No such project exist: "+projectName);
                     continue;
@@ -391,7 +398,9 @@ public class MailSender {
         MimeMessage msg = messageBuilder.buildMimeMessage();
 
         msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
-        msg.addHeader("X-Jenkins-Result", build.getResult().toString());
+        
+        final Result result = build.getResult();
+        msg.addHeader("X-Jenkins-Result", result != null ? result.toString() : "in progress");
 
         Run<?, ?> pb = build.getPreviousBuild();
         if(pb!=null) {
@@ -423,18 +432,17 @@ public class MailSender {
             b = b.getNextBuild();
             if (b != null) {
                 String userEmails = getUserEmailList(listener, b.getCulprits());
-                if (userEmails != null) {
-                    if (culpritEmails.length() > 0) {
-                        culpritEmails.append(",");
-                    }
-                    culpritEmails.append(userEmails);
+                if (culpritEmails.length() > 0) {
+                    culpritEmails.append(",");
                 }
+                culpritEmails.append(userEmails);
             }
         } while ( b != upstreamBuild && b != null );
 
         return culpritEmails.toString();
     }
 
+    @Nonnull
     private String getUserEmailList(TaskListener listener, Set<User> users) throws AddressException, UnsupportedEncodingException {
         StringBuilder userEmails = new StringBuilder();
         for (User a : users) {
@@ -464,6 +472,13 @@ public class MailSender {
         return false;
     }
 
+    /**
+     * Debug probe point to be activated by the scripting console.
+     * @deprecated This hack may be removed in future versions
+     */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", 
+            justification = "It may used for debugging purposes. We have to keep it for the sake of the binary copatibility")
+    @Deprecated
     public static boolean debug = false;
 
     private static final int MAX_LOG_LINES = Integer.getInteger(MailSender.class.getName()+".maxLogLines",250);
