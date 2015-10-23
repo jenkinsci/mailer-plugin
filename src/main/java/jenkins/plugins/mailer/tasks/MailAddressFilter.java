@@ -149,18 +149,33 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
 
     @Override
     public MailAddressFilterDescriptor getDescriptor() {
-        return (MailAddressFilterDescriptor)Jenkins.getActiveInstance().getDescriptor(getClass());
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            return (MailAddressFilterDescriptor)jenkins.getDescriptor(getClass());
+        } else {
+            throw new IllegalStateException("Jenkins is not active.");
+        }
     }
     
     /**
      * Returns all the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
-        return Jenkins.getActiveInstance().<MailAddressFilter,MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            return jenkins.<MailAddressFilter, MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
+        } else {
+            throw new IllegalStateException("Jenkins is not active.");
+        }
     }
     
     public static ExtensionList<MailAddressFilter> allExtensions() {
-        return Jenkins.getActiveInstance().getExtensionList(MailAddressFilter.class);
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            return jenkins.getExtensionList(MailAddressFilter.class);
+        } else {
+            throw new IllegalStateException("Jenkins is not active.");
+        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(MailAddressFilter.class.getName());
