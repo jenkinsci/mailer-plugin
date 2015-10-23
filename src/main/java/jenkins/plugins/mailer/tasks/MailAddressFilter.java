@@ -34,6 +34,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Hudson;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import jenkins.model.Jenkins;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -148,18 +149,18 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
 
     @Override
     public MailAddressFilterDescriptor getDescriptor() {
-        return (MailAddressFilterDescriptor)Hudson.getInstance().getDescriptor(getClass());
+        return (MailAddressFilterDescriptor)Jenkins.getActiveInstance().getDescriptor(getClass());
     }
     
     /**
      * Returns all the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
-        return Hudson.getInstance().<MailAddressFilter,MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
+        return Jenkins.getActiveInstance().<MailAddressFilter,MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
     }
     
     public static ExtensionList<MailAddressFilter> allExtensions() {
-        return Hudson.getInstance().getExtensionList(MailAddressFilter.class);
+        return Jenkins.getActiveInstance().getExtensionList(MailAddressFilter.class);
     }
 
     private static final Logger LOGGER = Logger.getLogger(MailAddressFilter.class.getName());
