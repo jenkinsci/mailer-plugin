@@ -221,6 +221,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public static DescriptorImpl DESCRIPTOR;
 
     public static DescriptorImpl descriptor() {
+        // TODO 1.590+ Jenkins.getActiveInstance
         final Jenkins jenkins = Jenkins.getInstance();
         if (jenkins == null) {
             throw new IllegalStateException("Jenkins instance is not ready");
@@ -541,6 +542,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException, ServletException, InterruptedException {
             try {
+                // TODO 1.590+ Jenkins.getActiveInstance
                 final Jenkins jenkins = Jenkins.getInstance();
                 if (jenkins == null) {
                     throw new IOException("Jenkins instance is not ready");

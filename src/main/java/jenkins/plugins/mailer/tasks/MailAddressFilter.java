@@ -149,6 +149,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
 
     @Override
     public MailAddressFilterDescriptor getDescriptor() {
+        // TODO 1.590+ Jenkins.getActiveInstance
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             return (MailAddressFilterDescriptor)jenkins.getDescriptor(getClass());
@@ -161,6 +162,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      * Returns all the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
+        // TODO 1.590+ Jenkins.getActiveInstance
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             return jenkins.<MailAddressFilter, MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
@@ -170,6 +172,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
     }
     
     public static ExtensionList<MailAddressFilter> allExtensions() {
+        // TODO 1.590+ Jenkins.getActiveInstance
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             return jenkins.getExtensionList(MailAddressFilter.class);

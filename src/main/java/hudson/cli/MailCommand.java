@@ -46,6 +46,7 @@ public class MailCommand extends CLICommand {
     }
 
     protected int run() throws Exception {
+        // TODO 1.590+ Jenkins.getActiveInstance
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             jenkins.checkPermission(Item.CONFIGURE);
