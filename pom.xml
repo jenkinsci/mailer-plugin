@@ -5,10 +5,12 @@
     <artifactId>plugin</artifactId>
     <version>1.577</version>
   </parent>
+  
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
   <version>1.16-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
+  
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
     <license>
