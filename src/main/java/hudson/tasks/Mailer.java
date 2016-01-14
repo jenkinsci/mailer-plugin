@@ -556,7 +556,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 MimeMessage msg = new MimeMessage(createSession(smtpServer, smtpPort, useSsl, smtpAuthUserName, smtpAuthPasswordSecret));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
-                msg.setFrom(stringToAddress(adminAddress, charset));
+                msg.setFrom(stringToAddress(replyToAddress, charset));
                 if (StringUtils.isNotBlank(replyToAddress)) {
                     msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
                 }
