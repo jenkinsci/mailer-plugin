@@ -26,10 +26,13 @@ package hudson.tasks;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Mailer.DescriptorImpl;
+import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.FailureBuilder;
-import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.Email;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.mock_javamail.Mailbox;
 
 import javax.mail.Address;
@@ -37,12 +40,21 @@ import javax.mail.internet.InternetAddress;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class MailerTest extends HudsonTestCase {
+public class MailerTest {
+
+    @Rule
+    public JenkinsRule rule = new JenkinsRule();
+
     @Bug(1566)
+    @Test
     public void testSenderAddress() throws Exception {
         // intentionally give the whole thin in a double quote
         JenkinsLocationConfiguration.get().setAdminAddress("\"me <me@sun.com>\"");
@@ -52,20 +64,21 @@ public class MailerTest extends HudsonTestCase {
         yourInbox.clear();
 
         // create a project to simulate a build failure
-        FreeStyleProject project = createFreeStyleProject();
+        FreeStyleProject project = rule.createFreeStyleProject();
         project.getBuildersList().add(new FailureBuilder());
         Mailer m = new Mailer(recipient, false, false);
         project.getPublishersList().add(m);
 
         FreeStyleBuild b = project.scheduleBuild2(0).get();
 
-        assertEquals(getLog(b), 1, yourInbox.size());
+        assertEquals(rule.getLog(b), 1, yourInbox.size());
         Address[] senders = yourInbox.get(0).getFrom();
         assertEquals(1,senders.length);
         assertEquals("me <me@sun.com>",senders[0].toString());
     }
 
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
+    @Test
     public void testConfigRoundtrip() throws Exception {
         Mailer m = new Mailer("kk@kohsuke.org", false, true);
         verifyRoundtrip(m);
@@ -75,14 +88,15 @@ public class MailerTest extends HudsonTestCase {
     }
 
     private void verifyRoundtrip(Mailer before) throws Exception {
-        FreeStyleProject p = createFreeStyleProject();
+        FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(before);
-        submit(new WebClient().getPage(p,"configure").getFormByName("config"));
+        rule.submit(rule.createWebClient().getPage(p,"configure").getFormByName("config"));
         Mailer after = p.getPublishersList().get(Mailer.class);
         assertNotSame(before,after);
-        assertEqualBeans(before,after,"recipients,dontNotifyEveryUnstableBuild,sendToIndividuals");
+        rule.assertEqualBeans(before,after,"recipients,dontNotifyEveryUnstableBuild,sendToIndividuals");
     }
 
+    @Test
     public void testGlobalConfigRoundtrip() throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
@@ -93,7 +107,7 @@ public class MailerTest extends HudsonTestCase {
         d.setUseSsl(true);
         d.setSmtpAuth("user","pass");
 
-        submit(new WebClient().goTo("configure").getFormByName("config"));
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("admin@me", JenkinsLocationConfiguration.get().getAdminAddress());
         assertEquals("default-suffix",d.getDefaultSuffix());
@@ -106,7 +120,7 @@ public class MailerTest extends HudsonTestCase {
 
         d.setUseSsl(false);
         d.setSmtpAuth(null,null);
-        submit(new WebClient().goTo("configure").getFormByName("config"));
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
         assertEquals(false,d.getUseSsl());
         assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
         assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
@@ -126,15 +140,16 @@ public class MailerTest extends HudsonTestCase {
     /**
      * Test {@link JenkinsLocationConfiguration} can load hudsonUrl.
      */
+    @Test
     public void testHudsonUrlCompatibility() throws Exception {
         // not configured.
         assertNull(new CleanJenkinsLocationConfiguration().getUrl());
         
         Mailer m = new Mailer("", true, false);
-        FreeStyleProject p = createFreeStyleProject();
+        FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(m);
-        WebClient wc = new WebClient();
-        submit(wc.getPage(p,"configure").getFormByName("config"));
+        WebClient wc = rule.createWebClient();
+        rule.submit(wc.getPage(p,"configure").getFormByName("config"));
         
         // configured via the marshaled XML file of Mailer
         assertEquals(wc.getContextPath(), new CleanJenkinsLocationConfiguration().getUrl());
