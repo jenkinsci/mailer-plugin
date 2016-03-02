@@ -78,9 +78,12 @@ public class MimeMessageBuilder {
 
     public MimeMessageBuilder() {
         if (Jenkins.getInstance() != null) {
-            defaultSuffix = Mailer.descriptor().getDefaultSuffix();
-            from = JenkinsLocationConfiguration.get().getAdminAddress();
-            replyTo = Mailer.descriptor().getReplyToAddress();
+            JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
+            if (jlc != null) {
+                defaultSuffix = Mailer.descriptor().getDefaultSuffix();
+                from = jlc.getAdminAddress();
+                replyTo = Mailer.descriptor().getReplyToAddress();
+            }
         }
     }
 
