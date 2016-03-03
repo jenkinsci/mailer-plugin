@@ -407,14 +407,17 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return smtpHost;
         }
 
-        // Method added to pass findbugs verification when compiling against 1.642.1
+        /**
+         * Method added to pass findbugs verification when compiling against 1.642.1
+         * @return The JenkinsLocationConfiguration object.
+         * @throws IllegalStateException if the object is not available (e.g., Jenkins not fully initialized).
+         */
         @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
             justification = "False positive. See https://sourceforge.net/p/findbugs/bugs/1411/")
         private JenkinsLocationConfiguration getJenkinsLocationConfiguration() {
             final JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
             if (jlc == null) {
-                // We maintain the same exception as before.
-                throw new NullPointerException("JenkinsLocationConfiguration not available");
+                throw new IllegalStateException("JenkinsLocationConfiguration not available");
             }
             return jlc;
         }
