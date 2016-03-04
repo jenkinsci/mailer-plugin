@@ -408,11 +408,26 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
+         * Method added to pass findbugs verification when compiling against 1.642.1
+         * @return The JenkinsLocationConfiguration object.
+         * @throws IllegalStateException if the object is not available (e.g., Jenkins not fully initialized).
+         */
+        @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification = "False positive. See https://sourceforge.net/p/findbugs/bugs/1411/")
+        private JenkinsLocationConfiguration getJenkinsLocationConfiguration() {
+            final JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
+            if (jlc == null) {
+                throw new IllegalStateException("JenkinsLocationConfiguration not available");
+            }
+            return jlc;
+        }
+
+        /**
          * @deprecated as of 1.4
          *      Use {@link JenkinsLocationConfiguration}
          */
         public String getAdminAddress() {
-            return JenkinsLocationConfiguration.get().getAdminAddress();
+            return getJenkinsLocationConfiguration().getAdminAddress();
         }
 
         /**
@@ -420,7 +435,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration}
          */
         public String getUrl() {
-            return JenkinsLocationConfiguration.get().getUrl();
+            return getJenkinsLocationConfiguration().getUrl();
         }
 
         public String getSmtpAuthUserName() {
@@ -459,7 +474,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration}
          */
         public void setHudsonUrl(String hudsonUrl) {
-            JenkinsLocationConfiguration.get().setUrl(hudsonUrl);
+            getJenkinsLocationConfiguration().setUrl(hudsonUrl);
         }
 
         /**
@@ -467,7 +482,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration}
          */
         public void setAdminAddress(String adminAddress) {
-            JenkinsLocationConfiguration.get().setAdminAddress(adminAddress);
+            getJenkinsLocationConfiguration().setAdminAddress(adminAddress);
         }
 
         public void setSmtpHost(String smtpHost) {
@@ -640,8 +655,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             @Override
-            public UserProperty newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-                return new UserProperty(req.getParameter("email.address"));
+            public UserProperty newInstance(@CheckForNull StaplerRequest req, JSONObject formData) throws FormException {
+                return new UserProperty(req != null ? req.getParameter("email.address") : null);
             }
         }
     }
