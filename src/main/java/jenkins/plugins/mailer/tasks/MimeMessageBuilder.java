@@ -60,6 +60,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Builder for {@link MimeMessage}. This class is NOT thread-safe.
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MimeMessageBuilder {
