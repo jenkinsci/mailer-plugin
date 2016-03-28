@@ -51,14 +51,22 @@ import java.security.spec.X509EncodedKeySpec;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MimeMessageBuilderTest {
+    /** Address constant A. */
+    private static final String A = "tom.aaaa@gmail.com";
+    /** Address constant X. */
+    private static final String X = "tom.xxxx@gmail.com";
+    /** Address constant Y. */
+    private static final String Y = "tom.yyyy@gmail.com";
+    /** Address constant Z. */
+    private static final String Z = "tom.zzzz@gmail.com";
 
     @Rule
     public JenkinsRule jenkinsRule = new JenkinsRule();
 
     @Before
     public void setup() {
-        JenkinsLocationConfiguration.get().setAdminAddress("tom.aaaa@gmail.com");
-        Mailer.descriptor().setReplyToAddress("tom.aaaa@gmail.com");
+        JenkinsLocationConfiguration.get().setAdminAddress(A);
+        Mailer.descriptor().setReplyToAddress(A);
     }
 
     @Test
@@ -72,18 +80,18 @@ public class MimeMessageBuilderTest {
         Address[] from = mimeMessage.getFrom();
         Assert.assertNotNull(from);
         Assert.assertEquals(1, from.length);
-        Assert.assertEquals("tom.aaaa@gmail.com", from[0].toString());
+        Assert.assertEquals(A, from[0].toString());
         Address[] replyTo = mimeMessage.getReplyTo();
         Assert.assertNotNull(from);
         Assert.assertEquals(1, replyTo.length);
-        Assert.assertEquals("tom.aaaa@gmail.com", replyTo[0].toString());
+        Assert.assertEquals(A, replyTo[0].toString());
 
         // check the recipient list...
         Address[] allRecipients = mimeMessage.getAllRecipients();
         Assert.assertNotNull(allRecipients);
         Assert.assertEquals(2, allRecipients.length);
-        Assert.assertEquals("tom.xxxx@gmail.com", allRecipients[0].toString());
-        Assert.assertEquals("tom.yyyy@gmail.com", allRecipients[1].toString());
+        Assert.assertEquals(X, allRecipients[0].toString());
+        Assert.assertEquals(Y, allRecipients[1].toString());
 
         // Make sure we can regen the instance identifier public key
         String encodedIdent = mimeMessage.getHeader("X-Instance-Identity")[0];
@@ -164,4 +172,28 @@ public class MimeMessageBuilderTest {
         Assert.assertEquals("tom.yyyy@gmail.com", recipients[1].toString());
         Assert.assertEquals("tom.zzzz@gmail.com", recipients[2].toString());
     }
+
+    @Test
+    @Issue("JENKINS-32301")
+    public void testMultipleReplyToAddress() throws Exception {
+        checkMultipleReplyToAddress("%s %s %s");
+        checkMultipleReplyToAddress("%s  , %s %s");
+        checkMultipleReplyToAddress("%s %s, %s");
+        checkMultipleReplyToAddress("%s,%s,%s");
+        checkMultipleReplyToAddress(new MimeMessageBuilder().setReplyTo(X).addReplyTo(Y).addReplyTo(Z));
+    }
+
+    private void checkMultipleReplyToAddress(String replyTo) throws Exception {
+        checkMultipleReplyToAddress(new MimeMessageBuilder().setReplyTo(String.format(replyTo, X, Y, Z)));
+    }
+
+    private void checkMultipleReplyToAddress(MimeMessageBuilder messageBuilder) throws Exception {
+        MimeMessage mimeMessage = messageBuilder.buildMimeMessage();
+        Address[] recipients = mimeMessage.getReplyTo();
+        Assert.assertEquals(3, recipients.length);
+        Assert.assertEquals(X, recipients[0].toString());
+        Assert.assertEquals(Y, recipients[1].toString());
+        Assert.assertEquals(Z, recipients[2].toString());
+    }
+
 }
