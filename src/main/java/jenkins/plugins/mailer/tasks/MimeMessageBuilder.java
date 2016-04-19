@@ -85,7 +85,7 @@ public class MimeMessageBuilder {
             JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
             if (jlc != null) {
                 defaultSuffix = Mailer.descriptor().getDefaultSuffix();
-                from = JenkinsLocationConfiguration.get().getAdminAddress();
+                from = jlc.getAdminAddress();
                 final String rto = Mailer.descriptor().getReplyToAddress();
                 try {
                     replyTo.addAll(toNormalizedAddresses(rto));
