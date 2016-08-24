@@ -31,7 +31,7 @@ import jenkins.model.Jenkins;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.scm.SCM;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
+import hudson.tasks.i18n.Messages;
 
 import java.util.List;
 import java.util.logging.Level;
