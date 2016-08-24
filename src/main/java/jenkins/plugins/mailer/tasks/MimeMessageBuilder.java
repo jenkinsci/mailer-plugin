@@ -81,15 +81,17 @@ public class MimeMessageBuilder {
     private Set<InternetAddress> bcc = new LinkedHashSet<InternetAddress>();
 
     public MimeMessageBuilder() {
-        JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
-        if (jlc != null) {
-            defaultSuffix = Mailer.descriptor().getDefaultSuffix();
-            from = jlc.getAdminAddress();
-            final String rto = Mailer.descriptor().getReplyToAddress();
-            try {
-                replyTo.addAll(toNormalizedAddresses(rto));
-            } catch(UnsupportedEncodingException e) {
-                logError("Unable to parse Reply-To Addresses " + rto, e);
+        if (Jenkins.getInstance() != null) {
+            JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
+            if (jlc != null) {
+                defaultSuffix = Mailer.descriptor().getDefaultSuffix();
+                from = jlc.getAdminAddress();
+                final String rto = Mailer.descriptor().getReplyToAddress();
+                try {
+                    replyTo.addAll(toNormalizedAddresses(rto));
+                } catch(UnsupportedEncodingException e) {
+                    logError("Unable to parse Reply-To Addresses " + rto, e);
+                }
             }
         }
     }
