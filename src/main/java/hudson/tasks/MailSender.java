@@ -34,6 +34,7 @@ import jenkins.plugins.mailer.tasks.i18n.Messages;
 import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import javax.mail.Address;
 import javax.mail.MessagingException;
@@ -132,9 +133,7 @@ public class MailSender {
                     listener.getLogger().println(Messages.MailSender_ListEmpty());
                 }
             }
-        } catch (MessagingException e) {
-            e.printStackTrace(listener.error(e.getMessage()));
-        } catch (UnsupportedEncodingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             e.printStackTrace(listener.error(e.getMessage()));
         }
     }
@@ -201,12 +200,8 @@ public class MailSender {
 
     private MimeMessage createBackToNormalMail(Run<?, ?> build, String subject, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = createEmptyMail(build, listener);
-
         msg.setSubject(getSubject(build, Messages.MailSender_BackToNormalMail_Subject(subject)),charset);
-        StringBuilder buf = new StringBuilder();
-        appendBuildUrl(build, buf);
-        msg.setText(buf.toString(),charset);
-
+        msg.setText(DisplayURLProvider.get().getRunURL(build),charset);
         return msg;
     }
 
@@ -236,26 +231,16 @@ public class MailSender {
         }
 
         msg.setSubject(getSubject(build, subject),charset);
-        StringBuilder buf = new StringBuilder();
+        DisplayURLProvider displayURLProvider = DisplayURLProvider.get();
         // Link to project changes summary for "still unstable" if this or last build has changes
+        String url;
         if (still && !(getChangeSet(build).isEmptySet() && getChangeSet(prev).isEmptySet()))
-            appendUrl(Util.encode(build.getParent().getUrl()) + "changes", buf);
+            url = displayURLProvider.getChangesURL(build);
         else
-            appendBuildUrl(build, buf);
-        msg.setText(buf.toString(), charset);
+            url = displayURLProvider.getRunURL(build);
+        msg.setText(url, charset);
 
         return msg;
-    }
-
-    private void appendBuildUrl(Run<?, ?> build, StringBuilder buf) {
-        appendUrl(Util.encode(build.getUrl())
-                  + (getChangeSet(build).isEmptySet() ? "" : "changes"), buf);
-    }
-
-    private void appendUrl(String url, StringBuilder buf) {
-        String baseUrl = Mailer.descriptor().getUrl();
-        if (baseUrl != null)
-            buf.append(Messages.MailSender_Link(baseUrl, url)).append("\n\n");
     }
 
     private MimeMessage createFailureMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException, InterruptedException {
@@ -264,7 +249,7 @@ public class MailSender {
         msg.setSubject(getSubject(build, Messages.MailSender_FailureMail_Subject()),charset);
 
         StringBuilder buf = new StringBuilder();
-        appendBuildUrl(build, buf);
+        buf.append(DisplayURLProvider.get().getRunURL(build));
 
         boolean firstChange = true;
         for (ChangeLogSet.Entry entry : getChangeSet(build)) {
@@ -343,7 +328,7 @@ public class MailSender {
         return msg;
     }
 
-    private MimeMessage createEmptyMail(final Run<?, ?> build, final TaskListener listener) throws MessagingException, UnsupportedEncodingException {
+    private MimeMessage createEmptyMail(final Run<?, ?> run, final TaskListener listener) throws MessagingException, UnsupportedEncodingException {
         MimeMessageBuilder messageBuilder = new MimeMessageBuilder()
                 .setCharset(charset)
                 .setListener(listener);
@@ -351,10 +336,12 @@ public class MailSender {
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?
 
+        final AbstractBuild<?, ?> build = run instanceof AbstractBuild ? ((AbstractBuild<?, ?>)run) : null;
+
         StringTokenizer tokens = new StringTokenizer(recipients);
         while (tokens.hasMoreTokens()) {
             String address = tokens.nextToken();
-            if (build instanceof AbstractBuild && address.startsWith("upstream-individuals:")) {
+            if (build != null && address.startsWith("upstream-individuals:")) {
                 // people who made a change in the upstream
                 String projectName = address.substring("upstream-individuals:".length());
                 // TODO 1.590+ Jenkins.getActiveInstance
@@ -363,47 +350,47 @@ public class MailSender {
                     listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
                     continue;
                 }
-                final AbstractProject up = jenkins.getItem(projectName, build.getParent(), AbstractProject.class);
+                final AbstractProject up = jenkins.getItem(projectName, run.getParent(), AbstractProject.class);
                 if(up==null) {
                     listener.getLogger().println("No such project exist: "+projectName);
                     continue;
                 }
-                messageBuilder.addRecipients(getCulpritsOfEmailList(up, (AbstractBuild) build, listener));
+                messageBuilder.addRecipients(getCulpritsOfEmailList(up, build, listener));
             } else {
                 // ordinary address
                 messageBuilder.addRecipients(address);
             }
         }
 
-        for (AbstractProject project : includeUpstreamCommitters) {
-            messageBuilder.addRecipients(getCulpritsOfEmailList(project, (AbstractBuild) build, listener));
-        }
-
-        if (sendToIndividuals && build instanceof AbstractBuild) {
-            Set<User> culprits = ((AbstractBuild) build).getCulprits();
-
-            if(debug)
-                listener.getLogger().println("Trying to send e-mails to individuals who broke the build. sizeof(culprits)=="+culprits.size());
-
-            messageBuilder.addRecipients(getUserEmailList(listener, culprits));
+        if (build != null) {
+            for (AbstractProject project : includeUpstreamCommitters) {
+                messageBuilder.addRecipients(getCulpritsOfEmailList(project, build, listener));
+            }
+            if (sendToIndividuals) {
+                Set<User> culprits = build.getCulprits();
+                if(debug) {
+                    listener.getLogger().println("Trying to send e-mails to individuals who broke the run. sizeof(culprits)==" + culprits.size());
+                }
+                messageBuilder.addRecipients(getUserEmailList(listener, culprits));
+            }
         }
         
         // set recipients after filtering out recipients that should not receive emails
         messageBuilder.setRecipientFilter(new MimeMessageBuilder.AddressFilter() {
             @Override
             public Set<InternetAddress> apply(Set<InternetAddress> recipients) {
-                return MailAddressFilter.filterRecipients(build, listener, recipients);
+                return MailAddressFilter.filterRecipients(run, listener, recipients);
             }
         });
 
         MimeMessage msg = messageBuilder.buildMimeMessage();
 
-        msg.addHeader("X-Jenkins-Job", build.getParent().getFullName());
+        msg.addHeader("X-Jenkins-Job", run.getParent().getFullName());
         
-        final Result result = build.getResult();
+        final Result result = run.getResult();
         msg.addHeader("X-Jenkins-Result", result != null ? result.toString() : "in progress");
 
-        Run<?, ?> pb = build.getPreviousBuild();
+        Run<?, ?> pb = run.getPreviousBuild();
         if(pb!=null) {
             MailMessageIdAction b = pb.getAction(MailMessageIdAction.class);
             if(b!=null) {
