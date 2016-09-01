@@ -40,7 +40,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.model.UserPropertyDescriptor;
-import hudson.tasks.i18n.Messages;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
