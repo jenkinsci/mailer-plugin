@@ -267,10 +267,9 @@ public class MailSender {
                     buf.append('\n');
                 }
             }
-            buf.append('\n');
         }
 
-        buf.append("------------------------------------------\n");
+        buf.append("\n------------------------------------------\n");
 
         try {
             // Restrict max log size to avoid sending enormous logs over email.
