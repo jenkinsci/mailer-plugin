@@ -12,7 +12,7 @@
   <name>Jenkins Mailer Plugin</name>
   <description>Allows you to configure email notifications for build results</description>
   
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
     <license>
       <name>The MIT license</name>
