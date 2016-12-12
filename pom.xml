@@ -10,7 +10,7 @@
   <packaging>hpi</packaging>
   <version>1.19-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
-  <description>Allows you to configure email notifications for build results</description>
+  <description>This plugin allows you to configure email notifications for build results</description>
   
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
