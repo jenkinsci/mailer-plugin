@@ -10,8 +10,9 @@
   <packaging>hpi</packaging>
   <version>1.19-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
+  <description>This plugin allows you to configure email notifications for build results</description>
   
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/Mailer</url>
   <licenses>
     <license>
       <name>The MIT license</name>
