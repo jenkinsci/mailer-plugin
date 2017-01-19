@@ -446,17 +446,17 @@ public class MailSender {
                     Authentication auth = a.impersonate();
                     if (!build.getACL().hasPermission(auth, Item.READ)) {
                         if (SEND_TO_USERS_WITHOUT_READ) {
-                            listener.getLogger().println("Warning: user " + adrs + " has no permissions to view " + build.getFullDisplayName() + ", but sending mail anyway");
+                            listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs, build.getFullDisplayName()));
                         } else {
-                            listener.getLogger().println("Not sending mail to user " + adrs + " with no permissions to view " + build.getFullDisplayName());
+                            listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
                             continue;
                         }
                     }
                 } catch (UsernameNotFoundException x) {
                     if (SEND_TO_UNKNOWN_USERS) {
-                        listener.getLogger().println("Warning: " + adrs + " is not a recognized user, but sending mail anyway");
+                        listener.getLogger().println(Messages.MailSender_warning_unknown_user(adrs));
                     } else {
-                        listener.getLogger().println("Not sending mail to unregistered user " + adrs);
+                        listener.getLogger().println(Messages.MailSender_unknown_user(adrs));
                         continue;
                     }
                 }
