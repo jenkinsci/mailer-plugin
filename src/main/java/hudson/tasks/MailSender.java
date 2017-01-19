@@ -429,12 +429,12 @@ public class MailSender {
     }
 
     /** If set, send to known users who lack {@link Item#READ} access to the job. */
-    private static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
+    static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
     /** If set, send to unknown users. */
-    private static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
+    static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
 
     @Nonnull
-    private String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
+    String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
         Set<User> users = build.getCulprits();
         StringBuilder userEmails = new StringBuilder();
         for (User a : users) {

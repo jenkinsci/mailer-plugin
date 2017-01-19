@@ -6,14 +6,22 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Item;
 import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.security.ACL;
+import hudson.util.StreamTaskListener;
+import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
 import org.acegisecurity.Authentication;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import static org.mockito.Mockito.*;
 
 /**
@@ -112,6 +120,56 @@ public class MailSenderTest {
             if (i >= 1) {
                 when(builds[i].getPreviousBuild()).thenReturn(builds[i-1]);
             }
+        }
+    }
+
+    @Issue("SECURITY-372")
+    @Test public void forbiddenMail() throws Exception {
+        ACL acl = mock(ACL.class);
+        User authorizedU = mock(User.class);
+        when(authorizedU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("authorized@mycorp"));
+        Authentication authorized = mock(Authentication.class);
+        when(authorizedU.impersonate()).thenReturn(authorized);
+        when(acl.hasPermission(authorized, Item.READ)).thenReturn(true);
+        User unauthorizedU = mock(User.class);
+        when(unauthorizedU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("unauthorized@mycorp"));
+        Authentication unauthorized = mock(Authentication.class);
+        when(unauthorizedU.impersonate()).thenReturn(unauthorized);
+        when(acl.hasPermission(unauthorized, Item.READ)).thenReturn(false);
+        User externalU = mock(User.class);
+        when(externalU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("someone@nowhere.net"));
+        when(externalU.impersonate()).thenThrow(new UsernameNotFoundException(""));
+        AbstractBuild<?, ?> build = mock(AbstractBuild.class);
+        when(build.getCulprits()).thenReturn(Sets.newLinkedHashSet(Arrays.asList(authorizedU, unauthorizedU, externalU)));
+        when(build.getACL()).thenReturn(acl);
+        when(build.getFullDisplayName()).thenReturn("prj #1");
+        StringWriter sw = new StringWriter();
+        TaskListener listener = new StreamTaskListener(sw);
+        assertEquals("authorized@mycorp", new MailSender("", false, true).getUserEmailList(listener, build));
+        listener.getLogger().flush();
+        assertThat(sw.toString(), containsString(Messages.MailSender_user_without_read("unauthorized@mycorp", "prj #1")));
+        assertThat(sw.toString(), containsString(Messages.MailSender_unknown_user("someone@nowhere.net")));
+        MailSender.SEND_TO_USERS_WITHOUT_READ = true;
+        try {
+            sw = new StringWriter();
+            listener = new StreamTaskListener(sw);
+            assertEquals("authorized@mycorp,unauthorized@mycorp", new MailSender("", false, true).getUserEmailList(listener, build));
+            listener.getLogger().flush();
+            assertThat(sw.toString(), containsString(Messages.MailSender_warning_user_without_read("unauthorized@mycorp", "prj #1")));
+            assertThat(sw.toString(), containsString(Messages.MailSender_unknown_user("someone@nowhere.net")));
+            MailSender.SEND_TO_UNKNOWN_USERS = true;
+            try {
+                sw = new StringWriter();
+                listener = new StreamTaskListener(sw);
+                assertEquals("authorized@mycorp,unauthorized@mycorp,someone@nowhere.net", new MailSender("", false, true).getUserEmailList(listener, build));
+                listener.getLogger().flush();
+                assertThat(sw.toString(), containsString(Messages.MailSender_warning_user_without_read("unauthorized@mycorp", "prj #1")));
+                assertThat(sw.toString(), containsString(Messages.MailSender_warning_unknown_user("someone@nowhere.net")));
+            } finally {
+                MailSender.SEND_TO_UNKNOWN_USERS = false;
+            }
+        } finally {
+            MailSender.SEND_TO_USERS_WITHOUT_READ = false;
         }
     }
 
