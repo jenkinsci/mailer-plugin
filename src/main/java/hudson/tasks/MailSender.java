@@ -52,6 +52,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -367,11 +369,7 @@ public class MailSender {
                 messageBuilder.addRecipients(getCulpritsOfEmailList(project, build, listener));
             }
             if (sendToIndividuals) {
-                Set<User> culprits = build.getCulprits();
-                if(debug) {
-                    listener.getLogger().println("Trying to send e-mails to individuals who broke the run. sizeof(culprits)==" + culprits.size());
-                }
-                messageBuilder.addRecipients(getUserEmailList(listener, culprits));
+                messageBuilder.addRecipients(getUserEmailList(listener, build));
             }
         }
         
@@ -419,7 +417,7 @@ public class MailSender {
         do {
             b = b.getNextBuild();
             if (b != null) {
-                String userEmails = getUserEmailList(listener, b.getCulprits());
+                String userEmails = getUserEmailList(listener, b);
                 if (culpritEmails.length() > 0) {
                     culpritEmails.append(",");
                 }
@@ -431,13 +429,24 @@ public class MailSender {
     }
 
     @Nonnull
-    private String getUserEmailList(TaskListener listener, Set<User> users) throws AddressException, UnsupportedEncodingException {
+    private String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
+        Set<User> users = build.getCulprits();
         StringBuilder userEmails = new StringBuilder();
         for (User a : users) {
             String adrs = Util.fixEmpty(a.getProperty(Mailer.UserProperty.class).getAddress());
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
             if (adrs != null) {
+                try {
+                    Authentication auth = a.impersonate();
+                    if (!build.getACL().hasPermission(auth, Item.READ)) {
+                        listener.getLogger().println("Not sending mail to user " + adrs + " with no permissions to view " + build.getFullDisplayName());
+                        continue;
+                    }
+                } catch (UsernameNotFoundException x) {
+                    listener.getLogger().println("Not sending mail to unregistered user " + adrs);
+                    continue;
+                }
                 if (userEmails.length() > 0) {
                     userEmails.append(",");
                 }
