@@ -428,6 +428,11 @@ public class MailSender {
         return culpritEmails.toString();
     }
 
+    /** If set, send to known users who lack {@link Item#READ} access to the job. */
+    private static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
+    /** If set, send to unknown users. */
+    private static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
+
     @Nonnull
     private String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
         Set<User> users = build.getCulprits();
@@ -440,12 +445,20 @@ public class MailSender {
                 try {
                     Authentication auth = a.impersonate();
                     if (!build.getACL().hasPermission(auth, Item.READ)) {
-                        listener.getLogger().println("Not sending mail to user " + adrs + " with no permissions to view " + build.getFullDisplayName());
-                        continue;
+                        if (SEND_TO_USERS_WITHOUT_READ) {
+                            listener.getLogger().println("Warning: user " + adrs + " has no permissions to view " + build.getFullDisplayName() + ", but sending mail anyway");
+                        } else {
+                            listener.getLogger().println("Not sending mail to user " + adrs + " with no permissions to view " + build.getFullDisplayName());
+                            continue;
+                        }
                     }
                 } catch (UsernameNotFoundException x) {
-                    listener.getLogger().println("Not sending mail to unregistered user " + adrs);
-                    continue;
+                    if (SEND_TO_UNKNOWN_USERS) {
+                        listener.getLogger().println("Warning: " + adrs + " is not a recognized user, but sending mail anyway");
+                    } else {
+                        listener.getLogger().println("Not sending mail to unregistered user " + adrs);
+                        continue;
+                    }
                 }
                 if (userEmails.length() > 0) {
                     userEmails.append(",");
