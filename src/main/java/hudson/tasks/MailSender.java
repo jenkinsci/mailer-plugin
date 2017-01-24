@@ -442,22 +442,24 @@ public class MailSender {
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
             if (adrs != null) {
-                try {
-                    Authentication auth = a.impersonate();
-                    if (!build.getACL().hasPermission(auth, Item.READ)) {
-                        if (SEND_TO_USERS_WITHOUT_READ) {
-                            listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs, build.getFullDisplayName()));
+                if (Jenkins.getActiveInstance().isUseSecurity()) {
+                    try {
+                        Authentication auth = a.impersonate();
+                        if (!build.getACL().hasPermission(auth, Item.READ)) {
+                            if (SEND_TO_USERS_WITHOUT_READ) {
+                                listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs, build.getFullDisplayName()));
+                            } else {
+                                listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
+                                continue;
+                            }
+                        }
+                    } catch (UsernameNotFoundException x) {
+                        if (SEND_TO_UNKNOWN_USERS) {
+                            listener.getLogger().println(Messages.MailSender_warning_unknown_user(adrs));
                         } else {
-                            listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
+                            listener.getLogger().println(Messages.MailSender_unknown_user(adrs));
                             continue;
                         }
-                    }
-                } catch (UsernameNotFoundException x) {
-                    if (SEND_TO_UNKNOWN_USERS) {
-                        listener.getLogger().println(Messages.MailSender_warning_unknown_user(adrs));
-                    } else {
-                        listener.getLogger().println(Messages.MailSender_unknown_user(adrs));
-                        continue;
                     }
                 }
                 if (userEmails.length() > 0) {
