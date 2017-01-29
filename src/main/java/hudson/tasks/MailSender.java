@@ -200,8 +200,12 @@ public class MailSender {
 
     private MimeMessage createBackToNormalMail(Run<?, ?> build, String subject, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = createEmptyMail(build, listener);
+
         msg.setSubject(getSubject(build, Messages.MailSender_BackToNormalMail_Subject(subject)),charset);
-        msg.setText(DisplayURLProvider.get().getRunURL(build),charset);
+        StringBuilder buf = new StringBuilder();
+        appendBuildUrl(build, buf);
+        msg.setText(buf.toString(),charset);
+
         return msg;
     }
 
@@ -230,17 +234,31 @@ public class MailSender {
             }
         }
 
-        msg.setSubject(getSubject(build, subject),charset);
+        msg.setSubject(getSubject(build, subject), charset);
+        StringBuilder buf = new StringBuilder();
         DisplayURLProvider displayURLProvider = DisplayURLProvider.get();
         // Link to project changes summary for "still unstable" if this or last build has changes
         String url;
-        if (still && !(getChangeSet(build).isEmptySet() && getChangeSet(prev).isEmptySet()))
-            url = displayURLProvider.getChangesURL(build);
-        else
-            url = displayURLProvider.getRunURL(build);
-        msg.setText(url, charset);
+        if (still && !(getChangeSet(build).isEmptySet() && getChangeSet(prev).isEmptySet())) {
+            appendUrl(displayURLProvider.getChangesURL(build), buf);
+        } else {
+            appendBuildUrl(build, buf);
+        }
+        msg.setText(buf.toString(), charset);
 
         return msg;
+    }
+
+    private void appendBuildUrl(Run<?, ?> build, StringBuilder buf) {
+        if (getChangeSet(build).isEmptySet()) {
+            appendUrl(DisplayURLProvider.get().getRunURL(build), buf);
+        } else {
+            appendUrl(DisplayURLProvider.get().getChangesURL(build), buf);
+        }
+    }
+
+    private void appendUrl(String url, StringBuilder buf) {
+        buf.append(Messages.MailSender_Link(url)).append("\n\n");
     }
 
     private MimeMessage createFailureMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException, InterruptedException {
@@ -249,7 +267,7 @@ public class MailSender {
         msg.setSubject(getSubject(build, Messages.MailSender_FailureMail_Subject()),charset);
 
         StringBuilder buf = new StringBuilder();
-        buf.append(DisplayURLProvider.get().getRunURL(build));
+        appendBuildUrl(build, buf);
 
         boolean firstChange = true;
         for (ChangeLogSet.Entry entry : getChangeSet(build)) {
