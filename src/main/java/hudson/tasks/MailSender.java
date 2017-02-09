@@ -267,6 +267,7 @@ public class MailSender {
                     buf.append('\n');
                 }
             }
+            buf.append('\n');
         }
 
         buf.append("\n------------------------------------------\n");
