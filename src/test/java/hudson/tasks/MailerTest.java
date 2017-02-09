@@ -32,6 +32,7 @@ import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.FakeChangeLogSCM;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.UnstableBuilder;
@@ -47,6 +48,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 
 
 /**
@@ -229,6 +232,18 @@ public class MailerTest {
         project.commit(AUTHOR2).failure().clearBuild().check(1, 0, 1);
     }
 
+    @Issue("JENKINS-40224")
+    @Test
+    public void testMessageText() throws Exception {
+        create(true, false)
+            .failure()
+            .buildAndCheckContent()
+            .unstable()
+            .buildAndCheckContent()
+            .success()
+            .buildAndCheckContent();
+    }
+
     private final class TestProject {
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -268,7 +283,7 @@ public class MailerTest {
             for (String recipient : mailboxesToClear) {
                 getEmptyMailbox(recipient);
             }
-            return new TestBuild(project.scheduleBuild2(0).get());
+            return new TestBuild(project, project.scheduleBuild2(0).get());
         }
 
         TestBuild clearBuild() throws Exception {
@@ -283,13 +298,21 @@ public class MailerTest {
         TestProject buildAndCheck(int expectedSize) throws Exception {
             return buildAndCheck(expectedSize, RECIPIENT);
         }
+
+        TestProject buildAndCheckContent() throws Exception {
+            build(RECIPIENT).checkContent();
+
+            return this;
+        }
     }
 
     private final class TestBuild {
+        private final FreeStyleProject project;
         private final FreeStyleBuild build;
         private final String log;
 
-        TestBuild(FreeStyleBuild build) throws Exception {
+        TestBuild(FreeStyleProject project, FreeStyleBuild build) throws Exception {
+            this.project = project;
             this.build = build;
             this.log = rule.getLog(build);
         }
@@ -302,6 +325,12 @@ public class MailerTest {
 
         TestBuild check(int expectedRecipient, int expectedAuthor1, int expectedAuthor2) throws Exception {
             return check(expectedRecipient, RECIPIENT).check(expectedAuthor1, AUTHOR1).check(expectedAuthor2, AUTHOR2);
+        }
+
+        void checkContent() throws Exception {
+            String expectedInMessage = String.format("<%sjob/%s/%d/display/redirect>\n\n", rule.getURL(), this.project.getName(), this.build.getNumber());
+            String emailContent = getMailbox(RECIPIENT).get(0).getContent().toString();
+            assertThat(emailContent, containsString(expectedInMessage));
         }
     }
 

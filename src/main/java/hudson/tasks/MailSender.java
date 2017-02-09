@@ -238,7 +238,6 @@ public class MailSender {
         StringBuilder buf = new StringBuilder();
         DisplayURLProvider displayURLProvider = DisplayURLProvider.get();
         // Link to project changes summary for "still unstable" if this or last build has changes
-        String url;
         if (still && !(getChangeSet(build).isEmptySet() && getChangeSet(prev).isEmptySet())) {
             appendUrl(displayURLProvider.getChangesURL(build), buf);
         } else {
