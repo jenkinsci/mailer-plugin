@@ -283,7 +283,7 @@ public class MailerTest {
             for (String recipient : mailboxesToClear) {
                 getEmptyMailbox(recipient);
             }
-            return new TestBuild(project, project.scheduleBuild2(0).get());
+            return new TestBuild(project.scheduleBuild2(0).get());
         }
 
         TestBuild clearBuild() throws Exception {
@@ -307,12 +307,10 @@ public class MailerTest {
     }
 
     private final class TestBuild {
-        private final FreeStyleProject project;
         private final FreeStyleBuild build;
         private final String log;
 
-        TestBuild(FreeStyleProject project, FreeStyleBuild build) throws Exception {
-            this.project = project;
+        TestBuild(FreeStyleBuild build) throws Exception {
             this.build = build;
             this.log = rule.getLog(build);
         }
@@ -328,7 +326,7 @@ public class MailerTest {
         }
 
         void checkContent() throws Exception {
-            String expectedInMessage = String.format("<%sjob/%s/%d/display/redirect>\n\n", rule.getURL(), this.project.getName(), this.build.getNumber());
+            String expectedInMessage = String.format("<%sjob/%s/%d/display/redirect>\n\n", rule.getURL(), this.build.getProject().getName(), this.build.getNumber());
             String emailContent = getMailbox(RECIPIENT).get(0).getContent().toString();
             assertThat(emailContent, containsString(expectedInMessage));
         }
