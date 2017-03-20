@@ -25,6 +25,7 @@ package hudson.tasks;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.User;
 import hudson.tasks.Mailer.DescriptorImpl;
 import org.junit.Rule;
 import org.junit.Test;
@@ -217,19 +218,28 @@ public class MailerTest {
             .buildAndCheck(1);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testNotifyCulprits() throws Exception {
-        TestProject project = create(true, true).buildAndCheck(0);
-        // Changes with no problems
-        project.commit(AUTHOR1).clearBuild().check(0, 0, 0);
-        // Commit causes build to be unstable
-        project.commit(AUTHOR1).unstable().clearBuild().check(1, 1, 0);
-        // Another one
-        project.commit(AUTHOR2).clearBuild().check(1, 1, 1);
-        // Back to normal
-        project.commit(AUTHOR1).success().clearBuild().check(1, 1, 1);
-        // Now a failure
-        project.commit(AUTHOR2).failure().clearBuild().check(1, 0, 1);
+        MailSender.debug = true;
+        try {
+            rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+            User.get("author1").addProperty(new Mailer.UserProperty(AUTHOR1));
+            User.get("author2").addProperty(new Mailer.UserProperty(AUTHOR2));
+            TestProject project = create(true, true).buildAndCheck(0);
+            // Changes with no problems
+            project.commit("author1").clearBuild().check(0, 0, 0);
+            // Commit causes build to be unstable
+            project.commit("author1").unstable().clearBuild().check(1, 1, 0);
+            // Another one
+            project.commit("author2").clearBuild().check(1, 1, 1);
+            // Back to normal
+            project.commit("author1").success().clearBuild().check(1, 1, 1);
+            // Now a failure
+            project.commit("author2").failure().clearBuild().check(1, 0, 1);
+        } finally {
+            MailSender.debug = false;
+        }
     }
 
     @Issue("JENKINS-40224")
