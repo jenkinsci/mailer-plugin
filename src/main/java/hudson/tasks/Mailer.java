@@ -78,6 +78,7 @@ import javax.servlet.ServletException;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
@@ -251,9 +252,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * If non-null, use SMTP-AUTH with these information.
          */
-        private String smtpAuthUsername;
+        private transient String smtpAuthUsername;
 
-        private Secret smtpAuthPassword;
+        private transient Secret smtpAuthPassword;
+
+        private SMTPAuthentication authentication;
 
         /**
          * The e-mail address that Hudson puts to "From:" field in outgoing e-mails.
@@ -317,6 +320,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return replyToAddress;
         }
 
+        @DataBoundSetter
         public void setReplyToAddress(String address) {
             this.replyToAddress = Util.fixEmpty(address);
         }
@@ -374,26 +378,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            // this code is brain dead
-            smtpHost = nullify(json.getString("smtpServer"));
-            setReplyToAddress(json.getString("replyToAddress"));
 
-            defaultSuffix = nullify(json.getString("defaultSuffix"));
-
-            if(json.has("useSMTPAuth")) {
-                JSONObject auth = json.getJSONObject("useSMTPAuth");
-                smtpAuthUsername = nullify(auth.getString("smtpAuthUserName"));
-                smtpAuthPassword = Secret.fromString(nullify(auth.getString("smtpAuthPasswordSecret")));
-            } else {
-                smtpAuthUsername = null;
-                smtpAuthPassword = null;
-            }
-            smtpPort = nullify(json.getString("smtpPort"));
-            useSsl = json.getBoolean("useSsl");
-            charset = json.getString("charset");
-            if (charset == null || charset.length() == 0)
-            	charset = "UTF-8";
-            
+            req.bindJSON(this, json);
             save();
             return true;
         }
@@ -438,13 +424,24 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return getJenkinsLocationConfiguration().getUrl();
         }
 
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public String getSmtpAuthUserName() {
-            return smtpAuthUsername;
+            if (authentication == null) return null;
+            return authentication.getSmtpAuthUsername();
         }
 
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public String getSmtpAuthPassword() {
-            if (smtpAuthPassword==null) return null;
-            return Secret.toString(smtpAuthPassword);
+            if (authentication == null) return null;
+            return Secret.toString(authentication.getSmtpAuthPassword());
         }
 
         public Secret getSmtpAuthPasswordSecret() {
@@ -465,6 +462,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         	return c;
         }
 
+        @DataBoundSetter
         public void setDefaultSuffix(String defaultSuffix) {
             this.defaultSuffix = defaultSuffix;
         }
@@ -485,25 +483,46 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             getJenkinsLocationConfiguration().setAdminAddress(adminAddress);
         }
 
+        @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
-            this.smtpHost = smtpHost;
+            this.smtpHost = nullify(smtpHost);
         }
 
+        @DataBoundSetter
         public void setUseSsl(boolean useSsl) {
             this.useSsl = useSsl;
         }
 
+        @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
             this.smtpPort = smtpPort;
         }
-        
-        public void setCharset(String chaset) {
-            this.charset = chaset;
+
+        @DataBoundSetter
+        public void setCharset(String charset) {
+            if (charset == null || charset.length() == 0) {
+                charset = "UTF-8";
+            }
+            this.charset = charset;
         }
 
+        @DataBoundSetter
+        public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
+            this.authentication = authentication;
+        }
+
+        @CheckForNull
+        public SMTPAuthentication getAuthentication() {
+            return authentication;
+        }
+
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public void setSmtpAuth(String userName, String password) {
-            this.smtpAuthUsername = userName;
-            this.smtpAuthPassword = Secret.fromString(password);
+            this.authentication = new SMTPAuthentication(smtpAuthUsername, Secret.fromString(password));
         }
 
         @Override
@@ -517,6 +536,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             return m;
+        }
+
+        private Object readResolve() {
+            if (smtpAuthPassword != null) {
+                authentication = new SMTPAuthentication(smtpAuthUsername, smtpAuthPassword);
+            }
+            return this;
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {

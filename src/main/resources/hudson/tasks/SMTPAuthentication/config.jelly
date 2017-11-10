@@ -24,35 +24,10 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:section title="${%E-mail Notification}">
-    <f:entry title="${%SMTP server}" field="smtpServer">
-      <f:textbox />
-    </f:entry>
-    <f:entry title="${%Default user e-mail suffix}" field="defaultSuffix">
-      <f:textbox />
-    </f:entry>
-    <f:advanced>
-
-      <f:optionalProperty title="${%Use SMTP Authentication}" field="authentication"/>
-
-      <f:entry title="${%Use SSL}" field="useSsl">
-        <f:checkbox />
-      </f:entry>
-      <f:entry title="${%SMTP Port}" field="smtpPort">
+      <f:entry title="${%User Name}" field="smtpAuthUsername">
         <f:textbox />
       </f:entry>
-      <f:entry title="${%Reply-To Address}" field="replyToAddress">
-        <f:textbox />
+      <f:entry title="${%Password}" field="smtpAuthPassword">
+        <f:password />
       </f:entry>
-      <f:entry title="${%Charset}" field="charset">
-        <f:textbox />
-      </f:entry>
-    </f:advanced>
-    <f:optionalBlock title="${%Test configuration by sending test e-mail}">
-      <f:entry title="${%Test e-mail recipient}">
-          <f:textbox name="sendTestMailTo"/>
-      </f:entry>
-      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpServer,adminAddress,useSMTPAuth,smtpAuthUserName,smtpAuthPasswordSecret,useSsl,smtpPort,charset" />
-    </f:optionalBlock>
-  </f:section>
 </j:jelly>
