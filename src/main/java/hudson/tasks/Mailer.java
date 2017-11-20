@@ -25,8 +25,6 @@
 package hudson.tasks;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import static hudson.Util.fixEmptyAndTrim;
-
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -40,27 +38,25 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.model.UserPropertyDescriptor;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
-
+import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
+import jenkins.tasks.SimpleBuildStep;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.types.selectors.SelectorUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.export.Exported;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Date;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.mail.Address;
@@ -74,19 +70,20 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Date;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.apache.tools.ant.types.selectors.SelectorUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.export.Exported;
-
-import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
-import org.kohsuke.accmod.restrictions.DoNotUse;
+import static hudson.Util.fixEmptyAndTrim;
 
 /**
  * {@link Publisher} that sends the build result in e-mail.
@@ -294,8 +291,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * The charset to use for the text and subject.
          */
-        private String charset;
-        
+        private String charset = charset_default;
+
+        public static final String charset_default = "UTF-8";
+
         /**
          * Used to keep track of number test e-mails.
          */
@@ -376,20 +375,18 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             };
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-
-            req.bindJSON(this, json);
-            save();
-            return true;
-        }
-
         private String nullify(String v) {
             if(v!=null && v.length()==0)    v=null;
             return v;
         }
 
+        @Deprecated
+        /** @deprecated use {@link #getSmtpHost} */
         public String getSmtpServer() {
+            return smtpHost;
+        }
+
+        public String getSmtpHost() {
             return smtpHost;
         }
 
