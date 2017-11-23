@@ -250,11 +250,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private String hudsonUrl;
 
-        /**
-         * If non-null, use SMTP-AUTH with these information.
-         */
+        /** @deprecated as of 1.22, use {@link #authentication} */
+        @Deprecated
         private transient String smtpAuthUsername;
 
+        @Deprecated
+        /** @deprecated as of 1.22, use {@link #authentication} */
         private transient Secret smtpAuthPassword;
 
         private SMTPAuthentication authentication;
@@ -390,6 +391,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return v;
         }
 
+        public String getSmtpHost() {
+            return smtpHost;
+        }
+
+        @Deprecated
+        /** @deprecated as of 1.22, use {@link #getSmtpHost()} */
         public String getSmtpServer() {
             return smtpHost;
         }
