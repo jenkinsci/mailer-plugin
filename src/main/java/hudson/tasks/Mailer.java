@@ -380,6 +380,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            // reset optional authentication to default before data-binding
+            setAuthentication(null);
 
             req.bindJSON(this, json);
             save();
