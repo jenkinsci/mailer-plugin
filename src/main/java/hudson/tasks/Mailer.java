@@ -443,7 +443,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         public String getSmtpAuthUserName() {
             if (authentication == null) return null;
-            return authentication.getSmtpAuthUsername();
+            return authentication.getUsername();
         }
 
         /**
@@ -453,7 +453,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         public String getSmtpAuthPassword() {
             if (authentication == null) return null;
-            return Secret.toString(authentication.getSmtpAuthPassword());
+            return Secret.toString(authentication.getPassword());
         }
 
         public Secret getSmtpAuthPasswordSecret() {

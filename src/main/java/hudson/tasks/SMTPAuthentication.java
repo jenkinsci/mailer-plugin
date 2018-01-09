@@ -11,22 +11,22 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthentication> {
 
-    private String smtpAuthUsername;
+    private String username;
 
-    private Secret smtpAuthPassword;
+    private Secret password;
 
     @DataBoundConstructor
-    public SMTPAuthentication(String smtpAuthUsername, Secret smtpAuthPassword) {
-        this.smtpAuthUsername = smtpAuthUsername;
-        this.smtpAuthPassword = smtpAuthPassword;
+    public SMTPAuthentication(String username, Secret password) {
+        this.username = username;
+        this.password = password;
     }
 
-    public String getSmtpAuthUsername() {
-        return smtpAuthUsername;
+    public String getUsername() {
+        return username;
     }
 
-    public Secret getSmtpAuthPassword() {
-        return smtpAuthPassword;
+    public Secret getPassword() {
+        return password;
     }
 
     @Extension
