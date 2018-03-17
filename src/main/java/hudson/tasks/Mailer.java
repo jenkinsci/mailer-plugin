@@ -86,6 +86,7 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * {@link Publisher} that sends the build result in e-mail.
@@ -551,6 +552,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @throws ServletException
          * @throws InterruptedException
          */
+        @RequirePOST
         public FormValidation doSendTestMail(
                 @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSMTPAuth,
                 @QueryParameter String smtpAuthUserName, @QueryParameter Secret smtpAuthPasswordSecret,
@@ -562,6 +564,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 if (jenkins == null) {
                     throw new IOException("Jenkins instance is not ready");
                 }
+
+                jenkins.checkPermission(Jenkins.ADMINISTER);
                 
                 if (!useSMTPAuth) {
                     smtpAuthUserName = null;
