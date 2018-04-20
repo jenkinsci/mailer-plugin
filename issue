@@ -1,0 +1,3 @@
+Is there any way to disable/hide jenkins log generated from mailer plugin.
+For eg. "Sending e-mails to: abc@aa.com xyz@xx.com"
+I want to disable "Sending e-mails to: abc@aa.com xyz@xx.com" this, So user who have read permission should not see my email address.
