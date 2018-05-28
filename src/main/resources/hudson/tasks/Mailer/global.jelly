@@ -32,8 +32,7 @@ THE SOFTWARE.
       <f:textbox />
     </f:entry>
     <f:advanced>
-      <f:optionalBlock name="useSMTPAuth" title="${%Use SMTP Authentication}" checked="${descriptor.smtpAuthUserName!=null}"
-          help="${descriptor.getHelpFile('smtpAuth')}">
+      <f:optionalBlock name="useSMTPAuth" title="${%Use SMTP Authentication}" checked="${descriptor.smtpAuthUserName!=null}">
         <f:entry title="${%User Name}" field="smtpAuthUserName">
           <f:textbox />
         </f:entry>
