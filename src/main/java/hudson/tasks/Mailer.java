@@ -540,7 +540,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         @Deprecated
         public void setSmtpAuth(String userName, String password) {
-            this.authentication = new SMTPAuthentication(smtpAuthUsername, Secret.fromString(password));
+            if (userName == null && password == null) {
+                this.authentication = null;
+            } else {
+                this.authentication = new SMTPAuthentication(userName, Secret.fromString(password));
+            }
         }
 
         @Override
