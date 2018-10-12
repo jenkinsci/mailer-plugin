@@ -116,4 +116,7 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+  <build>
+    <defaultGoal>clean install</defaultGoal>
+  </build>
 </project>
