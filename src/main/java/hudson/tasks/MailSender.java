@@ -177,27 +177,30 @@ public class MailSender {
         } catch (NoSuchMethodException x) {
             // non-deprecated subclass
         }
-        if (build.getResult() == Result.FAILURE) {
-            return createFailureMail(build, listener);
-        }
 
-        if (build.getResult() == Result.UNSTABLE) {
-            if (!dontNotifyEveryUnstableBuild)
-                return createUnstableMail(build, listener);
-            Result prev = findPreviousBuildResult(build);
-            if (prev == Result.SUCCESS || prev == null)
-                return createUnstableMail(build, listener);
+        switch(build.getResult()) {
+            case Result.FAILURE:
+                createFailureMail(build, listener);
+            case Result.UNSTABLE:
+                if (!dontNotifyEveryUnstableBuild) {
+                    return createUnstableMail(build, listener);
+                }
+                Result prev = findPreviousBuildResult(build);
+                if (prev == Result.SUCCESS || prev == null) {
+                    return createUnstableMail(build, listener);
+                }
+            case Result.SUCCESS:
+                Result prev = findPreviousBuildResult(build);
+                if (prev == Result.FAILURE) {
+                    return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
+                }
+                if (prev == Result.UNSTABLE) {
+                    return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
+                }
+            default:
+                System.out.println("Not sending any mail as BuildResult is not set at all.");
+                return null;
         }
-
-        if (build.getResult() == Result.SUCCESS) {
-            Result prev = findPreviousBuildResult(build);
-            if (prev == Result.FAILURE)
-                return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
-            if (prev == Result.UNSTABLE)
-                return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
-        }
-
-        return null;
     }
 
     private MimeMessage createBackToNormalMail(Run<?, ?> build, String subject, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
