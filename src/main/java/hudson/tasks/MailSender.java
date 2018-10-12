@@ -178,10 +178,10 @@ public class MailSender {
             // non-deprecated subclass
         }
 
-        switch(build.getResult()) {
-            case Result.FAILURE:
+        switch(String.valueOf(build.getResult())) {
+            case Result.FAILURE.toString():
                 createFailureMail(build, listener);
-            case Result.UNSTABLE:
+            case Result.UNSTABLE.toString():
                 if (!dontNotifyEveryUnstableBuild) {
                     return createUnstableMail(build, listener);
                 }
@@ -189,7 +189,7 @@ public class MailSender {
                 if (prev == Result.SUCCESS || prev == null) {
                     return createUnstableMail(build, listener);
                 }
-            case Result.SUCCESS:
+            case Result.SUCCESS.toString():
                 Result prev = findPreviousBuildResult(build);
                 if (prev == Result.FAILURE) {
                     return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
