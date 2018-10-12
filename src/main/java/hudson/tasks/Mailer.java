@@ -124,9 +124,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public Mailer() {}
 
     /**
-     * @param recipients
+     * @param recipients one or more recipients with separators
      * @param notifyEveryUnstableBuild inverted for historical reasons.
-     * @param sendToIndividuals
+     * @param sendToIndividuals if {@code true} mails are sent to individual committers
      */
     @DataBoundConstructor
     public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
@@ -181,6 +181,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     private static Pattern ADDRESS_PATTERN = Pattern.compile("\\s*([^<]*)<([^>]+)>\\s*");
     
     /**
+     * Deprecated! Converts a string to {@link InternetAddress}.
+     * @param strAddress Address string
+     * @param charset Charset (encoding) to be used
+     * @return {@link InternetAddress} for the specified string
+     * @throws AddressException Malformed address
+     * @throws UnsupportedEncodingException Unsupported encoding
+     *
      * @deprecated Use {@link #stringToAddress(java.lang.String, java.lang.String)}.
      */
     @Deprecated
