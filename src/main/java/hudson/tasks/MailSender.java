@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
@@ -62,6 +63,7 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
  * @author Kohsuke Kawaguchi
  */
 public class MailSender {
+    private final static Logger LOGGER = Logger.getLogger(MailSender.class.getName());
     /**
      * Whitespace-separated list of e-mail addresses that represent recipients.
      */
@@ -201,7 +203,7 @@ public class MailSender {
             }
         }
 
-        System.out.println("Not sending any mail as BuildResult is not set at all.");
+        LOGGER.info("No mail will be sent out, as the current build's result is not set at all. Please make sure you set a proper result in case of pipeline/build scripts.");
         return null;
     }
 
