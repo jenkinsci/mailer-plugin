@@ -180,8 +180,8 @@ public class MailSender {
 
         switch(String.valueOf(build.getResult())) {
             case Result.FAILURE.toString():
-                createFailureMail(build, listener);
-            case Result.UNSTABLE.toString():
+                return createFailureMail(build, listener);
+            case Result.UNSTABLE.toString(): {
                 if (!dontNotifyEveryUnstableBuild) {
                     return createUnstableMail(build, listener);
                 }
@@ -189,7 +189,8 @@ public class MailSender {
                 if (prev == Result.SUCCESS || prev == null) {
                     return createUnstableMail(build, listener);
                 }
-            case Result.SUCCESS.toString():
+            }
+            case Result.SUCCESS.toString(): {
                 Result prev = findPreviousBuildResult(build);
                 if (prev == Result.FAILURE) {
                     return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
@@ -197,6 +198,7 @@ public class MailSender {
                 if (prev == Result.UNSTABLE) {
                     return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
                 }
+            }
             default:
                 System.out.println("Not sending any mail as BuildResult is not set at all.");
                 return null;
