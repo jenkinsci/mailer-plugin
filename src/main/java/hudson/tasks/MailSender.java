@@ -178,31 +178,31 @@ public class MailSender {
             // non-deprecated subclass
         }
 
-        switch(String.valueOf(build.getResult())) {
-            case Result.FAILURE.toString():
-                return createFailureMail(build, listener);
-            case Result.UNSTABLE.toString(): {
-                if (!dontNotifyEveryUnstableBuild) {
-                    return createUnstableMail(build, listener);
-                }
-                Result prev = findPreviousBuildResult(build);
-                if (prev == Result.SUCCESS || prev == null) {
-                    return createUnstableMail(build, listener);
-                }
-            }
-            case Result.SUCCESS.toString(): {
-                Result prev = findPreviousBuildResult(build);
-                if (prev == Result.FAILURE) {
-                    return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
-                }
-                if (prev == Result.UNSTABLE) {
-                    return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
-                }
-            }
-            default:
-                System.out.println("Not sending any mail as BuildResult is not set at all.");
-                return null;
+        if (build.getResult() == Result.FAILURE) {
+            return createFailureMail(build, listener);
         }
+        if (build.getResult() == Result.UNSTABLE) {
+            if (!dontNotifyEveryUnstableBuild) {
+                return createUnstableMail(build, listener);
+            }
+            Result prev = findPreviousBuildResult(build);
+            if (prev == Result.SUCCESS || prev == null) {
+                return createUnstableMail(build, listener);
+            }
+        }
+
+        if (build.getResult() == Result.SUCCESS) {
+            Result prev = findPreviousBuildResult(build);
+            if (prev == Result.FAILURE) {
+                return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
+            }
+            if (prev == Result.UNSTABLE) {
+                return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
+            }
+        }
+
+        System.out.println("Not sending any mail as BuildResult is not set at all.");
+        return null;
     }
 
     private MimeMessage createBackToNormalMail(Run<?, ?> build, String subject, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
