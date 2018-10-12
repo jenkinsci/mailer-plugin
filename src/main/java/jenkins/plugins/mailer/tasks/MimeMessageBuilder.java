@@ -161,6 +161,13 @@ public class MimeMessageBuilder {
         return this;
     }
 
+    /**
+     * Adds the given recipients to the current MIME message.
+     * @param recipients one or more recipients
+     * @param recipientType recipient type
+     * @return the constructed message with the given recipients
+     * @throws UnsupportedEncodingException in case of encoding problems
+     */
     public MimeMessageBuilder addRecipients(@Nonnull String recipients, @Nonnull Message.RecipientType recipientType) throws UnsupportedEncodingException {
         StringTokenizer tokens = new StringTokenizer(recipients, " \t\n\r\f,");
         while (tokens.hasMoreTokens()) {
@@ -184,8 +191,8 @@ public class MimeMessageBuilder {
     /**
      * Build a {@link MimeMessage} instance from the set of supplied parameters.
      * @return The {@link MimeMessage} instance;
-     * @throws MessagingException
-     * @throws UnsupportedEncodingException
+     * @throws MessagingException in case the mail cannot be created
+     * @throws UnsupportedEncodingException in case of encoding problems
      */
     public MimeMessage buildMimeMessage() throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
