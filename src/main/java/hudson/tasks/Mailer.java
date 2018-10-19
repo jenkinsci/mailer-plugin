@@ -459,7 +459,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public String getSmtpPort() {
         	return smtpPort;
         }
-        
+
+        public String getSmtpHost() {
+            return smtpHost;
+        }
+
         public String getCharset() {
         	String c = charset;
         	if (c == null || c.length() == 0)	c = "UTF-8";
