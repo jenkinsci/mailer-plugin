@@ -26,35 +26,33 @@ package hudson.tasks;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
-import hudson.Util;
 import hudson.Functions;
+import hudson.Util;
 import hudson.model.*;
 import hudson.scm.ChangeLogSet;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
 import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import javax.mail.internet.AddressException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -63,7 +61,6 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
  * @author Kohsuke Kawaguchi
  */
 public class MailSender {
-    private final static Logger LOGGER = Logger.getLogger(MailSender.class.getName());
     /**
      * Whitespace-separated list of e-mail addresses that represent recipients.
      */
@@ -203,7 +200,7 @@ public class MailSender {
             }
         }
 
-        LOGGER.info("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
+        listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
         return null;
     }
 
