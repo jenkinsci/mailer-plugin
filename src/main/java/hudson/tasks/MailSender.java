@@ -203,7 +203,7 @@ public class MailSender {
             }
         }
 
-        LOGGER.info("No mail will be sent out, as the current build's result is not set at all. Please make sure you set a proper result in case of pipeline/build scripts.");
+        LOGGER.info("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
         return null;
     }
 
