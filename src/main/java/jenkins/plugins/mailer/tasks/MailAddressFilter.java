@@ -73,10 +73,11 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
     /**
      * Checks if a given email should be excluded from the recipients of an
      * email.
-     * 
-     * @param build
-     * 
-     * @return true if given InternetAddress is to be excluded from the
+     *
+     * @param build the current build.
+     * @param listener the task listener
+     * @param address email address
+     * @return {@code true} if given InternetAddress is to be excluded from the
      *         recipients
      */
     public boolean shouldFilter(Run<?,?> build, TaskListener listener, InternetAddress address) {
@@ -97,11 +98,11 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
     }
 
     /**
-     * Returns a copy of the given set of recipients excluding addresses that our filtered out.
-     * @param build
-     * @param listener
-     * @param recipients
-     * @return
+     * Returns a copy of the given set of recipients excluding addresses that are filtered out.
+     * @param build the current build.
+     * @param listener the task listener
+     * @param recipients set of recipients
+     * @return filtered list of recipients
      */
     public static Set<InternetAddress> filterRecipients(Run<?,?> build, TaskListener listener, Set<InternetAddress> recipients) {
 
