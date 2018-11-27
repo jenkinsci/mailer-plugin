@@ -501,7 +501,7 @@ public class MailSender {
     /**
      * Check whether a path (/-separated) will be archived.
      * @param build current build
-     * @param path path
+     * @param path given path, separated by {@code /}
      * @return always returns {@code false} to not archive anything
      */
     protected boolean artifactMatches(String path, AbstractBuild<?, ?> build) {

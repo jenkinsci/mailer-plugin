@@ -106,7 +106,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Try to resolve email address using resolvers.
      * If a user specifies a Mail {@link UserProperty}, then it will be used with
      * the highest priority.
-     * @param u user
+     * @param u user to resolve address for
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
