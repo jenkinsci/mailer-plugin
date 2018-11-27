@@ -95,7 +95,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Since {@link MailAddressResolver} is singleton, this method can be invoked concurrently
      * from multiple threads.
      *
-     * @param u user
+     * @param u  a given user to resolve address for
      *
      * @return
      *      null if the inference failed.
