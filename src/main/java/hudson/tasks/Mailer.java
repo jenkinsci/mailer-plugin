@@ -27,6 +27,7 @@ package hudson.tasks;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static hudson.Util.fixEmptyAndTrim;
 
+import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -325,6 +326,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @DataBoundSetter
         public void setReplyToAddress(String address) {
             this.replyToAddress = Util.fixEmpty(address);
+            save();
         }
 
         /** JavaMail session. */
@@ -380,11 +382,18 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            // reset optional authentication to default before data-binding
-            setAuthentication(null);
 
-            req.bindJSON(this, json);
-            save();
+            BulkChange b = new BulkChange(this);
+            try {
+                // reset optional authentication to default before data-binding
+                // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
+                setAuthentication(null);
+                req.bindJSON(this, json);
+                b.commit();
+            } catch (IOException e) {
+                b.abort();
+                throw new FormException("Failed to apply configuration", e, null);
+            }
             return true;
         }
 
@@ -398,7 +407,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Deprecated
-        /** @deprecated as of 1.22, use {@link #getSmtpHost()} */
+        /** @deprecated as of 1.23, use {@link #getSmtpHost()} */
         public String getSmtpServer() {
             return smtpHost;
         }
@@ -468,10 +477,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         	return smtpPort;
         }
 
-        public String getSmtpHost() {
-            return smtpHost;
-        }
-
         public String getCharset() {
         	String c = charset;
         	if (c == null || c.length() == 0)	c = "UTF-8";
@@ -481,6 +486,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @DataBoundSetter
         public void setDefaultSuffix(String defaultSuffix) {
             this.defaultSuffix = defaultSuffix;
+            save();
         }
 
         /**
@@ -504,16 +510,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
             this.smtpHost = nullify(smtpHost);
+            save();
         }
 
         @DataBoundSetter
         public void setUseSsl(boolean useSsl) {
             this.useSsl = useSsl;
+            save();
         }
 
         @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
             this.smtpPort = smtpPort;
+            save();
         }
 
         @DataBoundSetter
@@ -522,11 +531,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 charset = "UTF-8";
             }
             this.charset = charset;
+            save();
         }
 
         @DataBoundSetter
         public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
             this.authentication = authentication;
+            save();
         }
 
         @CheckForNull
