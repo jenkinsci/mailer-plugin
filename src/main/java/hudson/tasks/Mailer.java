@@ -445,6 +445,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * @deprecated as of 1.4
          *      Use {@link JenkinsLocationConfiguration} instead
+         * @return Jenkins base URL
          */
         public String getUrl() {
             return getJenkinsLocationConfiguration().getUrl();
@@ -483,7 +484,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @param hudsonUrl Jenkins base URL to set
          */
         public void setHudsonUrl(String hudsonUrl) {
             getJenkinsLocationConfiguration().setUrl(hudsonUrl);
@@ -491,7 +493,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @param adminAddress Jenkins administrator mail address to set
          */
         public void setAdminAddress(String adminAddress) {
             getJenkinsLocationConfiguration().setAdminAddress(adminAddress);

@@ -160,7 +160,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
     }
     
     /**
-     * Returns all the registered {@link MailAddressFilter} descriptors
+     * @return all of the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
         // TODO 1.590+ Jenkins.getActiveInstance
