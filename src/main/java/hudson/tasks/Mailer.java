@@ -555,16 +555,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Send an email to the admin address
-         * @throws IOException
-         * @throws ServletException
-         * @throws InterruptedException
+         * @throws IOException in case the active jenkins instance cannot be retrieved
+         * @return response with http status code depending on the result of the mail sending
          */
         @RequirePOST
         public FormValidation doSendTestMail(
                 @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSMTPAuth,
                 @QueryParameter String smtpAuthUserName, @QueryParameter Secret smtpAuthPasswordSecret,
                 @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
-                @QueryParameter String sendTestMailTo) throws IOException, ServletException, InterruptedException {
+                @QueryParameter String sendTestMailTo) throws IOException {
             try {
                 // TODO 1.590+ Jenkins.getActiveInstance
                 final Jenkins jenkins = Jenkins.getInstance();
@@ -650,6 +649,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Has the user configured a value explicitly (true), or is it inferred (false)?
+         * @return {@code true} if there is an email address available.
          */
         public boolean hasExplicitlyConfiguredAddress() {
             return Util.fixEmptyAndTrim(emailAddress)!=null;
