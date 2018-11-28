@@ -556,11 +556,20 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * Send an email to the admin address
          * @throws IOException in case the active jenkins instance cannot be retrieved
+         * @param smtpServer name of the SMTP server to use for mail sending
+         * @param adminAddress Jenkins administrator mail address
+         * @param useSmtpAuth if set to {@code true} SMTP is used without authentication (username and password)
+         * @param smtpAuthUserName plaintext username for SMTP authentication
+         * @param smtpAuthPasswordSecret plaintext password for SMTP authentication
+         * @param useSsl if set to {@code true} SSL is used
+         * @param smtpPort port to use for SMTP transfer
+         * @param charset charset of the underlying MIME-mail message
+         * @param sendTestMailTo mail address to send test mail to
          * @return response with http status code depending on the result of the mail sending
          */
         @RequirePOST
         public FormValidation doSendTestMail(
-                @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSMTPAuth,
+                @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSmtpAuth,
                 @QueryParameter String smtpAuthUserName, @QueryParameter Secret smtpAuthPasswordSecret,
                 @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
@@ -573,7 +582,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
                 jenkins.checkPermission(Jenkins.ADMINISTER);
                 
-                if (!useSMTPAuth) {
+                if (!useSmtpAuth) {
                     smtpAuthUserName = null;
                     smtpAuthPasswordSecret = null;
                 }
