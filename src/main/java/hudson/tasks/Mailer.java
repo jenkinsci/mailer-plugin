@@ -329,7 +329,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             this.replyToAddress = Util.fixEmpty(address);
         }
 
-        /** JavaMail session. */
+        /**
+         * Creates a JavaMail session.
+         * @return mail session based on the underlying session parameters.
+         */
         public Session createSession() {
             return createSession(smtpHost,smtpPort,useSsl,smtpAuthUsername,smtpAuthPassword);
         }
@@ -432,7 +435,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @return administrator mail address
          */
         public String getAdminAddress() {
             return getJenkinsLocationConfiguration().getAdminAddress();
@@ -440,7 +444,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
          */
         public String getUrl() {
             return getJenkinsLocationConfiguration().getUrl();
