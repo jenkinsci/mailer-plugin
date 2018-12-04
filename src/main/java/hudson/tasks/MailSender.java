@@ -274,12 +274,10 @@ public class MailSender {
         StringBuilder buf = new StringBuilder();
         appendBuildUrl(build, buf);
 
-        boolean firstChange = true;
+        // add new line before iterating over changes to have a proper formatting in the mail itself
+        buf.append(Messages.MailSender_FailureMail_Changes()).append("\n\n");
+
         for (ChangeLogSet.Entry entry : getChangeSet(build)) {
-            if (firstChange) {
-                firstChange = false;
-                buf.append(Messages.MailSender_FailureMail_Changes()).append("\n\n");
-            }
             buf.append('[');
             buf.append(entry.getAuthor().getFullName());
             buf.append("] ");
