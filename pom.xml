@@ -117,6 +117,6 @@
     </pluginRepository>
   </pluginRepositories>
   <build>
-    <defaultGoal>clean verify</defaultGoal>
+    <defaultGoal>clean hpi:run</defaultGoal>
   </build>
 </project>
