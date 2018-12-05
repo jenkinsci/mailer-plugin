@@ -9,7 +9,7 @@
   
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>1.22-SNAPSHOT</version>
+  <version>1.23-SNAPSHOT</version>
   <name>Jenkins Mailer Plugin</name>
   <description>This plugin allows you to configure email notifications for build results</description>
   
