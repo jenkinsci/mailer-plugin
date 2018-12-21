@@ -39,7 +39,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(Jenkins.class)
-@PowerMockIgnore("javax.security.auth.Subject") // otherwise as in https://groups.google.com/d/msg/jenkinsci-dev/n5sdCxrccSk/7K4yTTc7XG4J mock(ACL.class) in Java 8 fails with: java.lang.LinkageError: loader constraint violation in interface itable initialization: when resolving method "org.acegisecurity.Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863.implies(Ljavax/security/auth/Subject;)Z" the class loader (instance of org/powermock/core/classloader/MockClassLoader) of the current class, org/acegisecurity/Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863, and the class loader (instance of <bootloader>) for interface java/security/Principal have different Class objects for the type javax/security/auth/Subject used in the signature
+@PowerMockIgnore({"javax.security.auth.Subject", "javax.security.*", "javax.xml.*"}) // otherwise as in https://groups.google.com/d/msg/jenkinsci-dev/n5sdCxrccSk/7K4yTTc7XG4J mock(ACL.class) in Java 8 fails with: java.lang.LinkageError: loader constraint violation in interface itable initialization: when resolving method "org.acegisecurity.Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863.implies(Ljavax/security/auth/Subject;)Z" the class loader (instance of org/powermock/core/classloader/MockClassLoader) of the current class, org/acegisecurity/Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863, and the class loader (instance of <bootloader>) for interface java/security/Principal have different Class objects for the type javax/security/auth/Subject used in the signature
 @SuppressWarnings("rawtypes")
 public class MailSenderTest {
     

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2010, Sun Microsystems, Inc.
+ * Copyright (c) 2004-2018, Sun Microsystems, Inc., CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +26,12 @@ package hudson.cli;
 import hudson.tasks.Mailer;
 import hudson.Extension;
 import jenkins.model.Jenkins;
-import hudson.model.Item;
 
 import javax.mail.internet.MimeMessage;
 import javax.mail.Transport;
 
 /**
- * Sends e-mail through Hudson.
+ * Sends e-mail through Jenkins.
  *
  * <p>
  * Various platforms have different commands to do this, so on heterogenous platform, doing this via Hudson is easier.
@@ -42,15 +41,11 @@ import javax.mail.Transport;
 @Extension
 public class MailCommand extends CLICommand {
     public String getShortDescription() {
-        return Messages.MailCommand_ShortDescription();
+        return jenkins.plugins.mailer.tasks.i18n.Messages.MailCommand_ShortDescription();
     }
 
     protected int run() throws Exception {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins is not active.");
-        }
+        Jenkins jenkins = Jenkins.getActiveInstance();
         jenkins.checkPermission(Jenkins.ADMINISTER);
         Transport.send(new MimeMessage(Mailer.descriptor().createSession(),stdin));
         return 0;
