@@ -27,6 +27,7 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.User;
 import hudson.tasks.Mailer.DescriptorImpl;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
@@ -157,6 +158,11 @@ public class MailerTest {
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */
     private static class CleanJenkinsLocationConfiguration extends JenkinsLocationConfiguration {
+        public CleanJenkinsLocationConfiguration() {
+            super();
+            load();
+        }
+
         @Override
         public synchronized void load() {
             getConfigFile().delete();
