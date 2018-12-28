@@ -23,9 +23,14 @@
  */
 package hudson.tasks;
 
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.User;
+import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,6 +41,7 @@ import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
 import org.jvnet.mock_javamail.Mailbox;
 
@@ -44,6 +50,7 @@ import javax.mail.internet.InternetAddress;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
@@ -51,7 +58,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-
 
 /**
  * @author Kohsuke Kawaguchi
@@ -254,6 +260,18 @@ public class MailerTest {
             .buildAndCheckContent();
     }
 
+    @Issue("JENKINS-37812")
+    @Test
+    public void testFailureSendMessage() throws Exception {
+        DumbSlave node = rule.createSlave();
+        Mailer m = new MailerDisconnecting(rule, node, RECIPIENT, true, false);
+
+        new TestProject(m)
+                .withNode(node)
+                .failure()
+                .buildAndCheckSending();
+    }
+
     private final class TestProject {
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -262,6 +280,11 @@ public class MailerTest {
             project = rule.createFreeStyleProject();
             project.setScm(scm);
             project.getPublishersList().add(m);
+        }
+
+        TestProject withNode(DumbSlave node) throws Exception {
+            project.setAssignedNode(node);
+            return this;
         }
 
         TestProject changeStatus(Builder status) {
@@ -314,6 +337,12 @@ public class MailerTest {
 
             return this;
         }
+
+        TestProject buildAndCheckSending() throws Exception {
+            build(RECIPIENT).checkSendingContent();
+
+            return this;
+        }
     }
 
     private final class TestBuild {
@@ -340,6 +369,48 @@ public class MailerTest {
             String emailContent = getMailbox(RECIPIENT).get(0).getContent().toString();
             assertThat(emailContent, containsString(expectedInMessage));
         }
+
+        void checkSendingContent() {
+            assertThat(log, containsString("Sending e-mails to"));
+        }
     }
 
+    private static final class MailerDisconnecting extends Mailer {
+        private transient final JenkinsRule rule;
+        private transient final DumbSlave node;
+
+        private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+            super(recipients, notifyEveryUnstableBuild, sendToIndividuals);
+            this.rule = rule;
+            this.node = node;
+        }
+
+        @Override
+        public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+            try {
+                rule.disconnectSlave(node);
+            } catch (Exception e) {
+                throw new IOException(String.format("Impossible to disconnect %s", node.getDisplayName()), e);
+            }
+
+            return super.perform(build, launcher, listener);
+        }
+
+        @TestExtension
+        public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+
+            public DescriptorImpl() {
+                load();
+            }
+
+            public String getDisplayName() {
+                return "TestDescriptor";
+            }
+
+            public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+                return true;
+            }
+        }
+
+    }
 }

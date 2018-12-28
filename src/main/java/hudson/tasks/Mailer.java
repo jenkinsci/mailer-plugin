@@ -29,15 +29,13 @@ import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.EnvVars;
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.BuildListener;
 import hudson.model.User;
 import hudson.model.UserPropertyDescriptor;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
@@ -83,7 +81,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
 import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -93,7 +90,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  *
  * @author Kohsuke Kawaguchi
  */
-public class Mailer extends Notifier implements SimpleBuildStep {
+public class Mailer extends Notifier {
     protected static final Logger LOGGER = Logger.getLogger(Mailer.class.getName());
 
     /**
@@ -136,7 +133,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     }
 
     @Override
-    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         if(debug)
             listener.getLogger().println("Running mailer");
         // substitute build parameters
@@ -169,6 +166,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 return false;
             }
         }.run(build,listener);
+
+        return true;
     }
 
     /**
