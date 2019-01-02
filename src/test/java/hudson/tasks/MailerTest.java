@@ -56,6 +56,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -283,7 +284,7 @@ public class MailerTest {
         Mailbox inbox = getMailbox(RECIPIENT);
         inbox.clear();
         WorkflowRun b = rule.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
-        assertEquals(1, inbox.size());
+        assertThat("One email should have been sent", inbox, hasSize(1));
         assertEquals("Build failed in Jenkins: " + b.getFullDisplayName(), inbox.get(0).getSubject());
         assertThat(rule.getLog(b), containsString("Sending e-mails to"));
     }
@@ -388,7 +389,7 @@ public class MailerTest {
 
         void checkSendingContent() throws Exception {
             Mailbox inbox = getMailbox(RECIPIENT);
-            assertEquals(1, inbox.size());
+            assertThat("One email should have been sent", inbox, hasSize(1));
             assertThat(log, containsString("Sending e-mails to"));
         }
     }
