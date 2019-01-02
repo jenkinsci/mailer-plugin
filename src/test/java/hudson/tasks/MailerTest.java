@@ -24,14 +24,12 @@
 package hudson.tasks;
 
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.User;
+import hudson.model.*;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
@@ -272,6 +270,24 @@ public class MailerTest {
                 .buildAndCheckSending();
     }
 
+    @Issue("JENKINS-37812")
+    @Test
+    public void testPipelineCompatibility() throws Exception {
+        WorkflowJob p = rule.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(
+                "node {\n"
+                        + "    catchError {error 'oops'}\n"
+                        + "    step([$class: 'Mailer', recipients: '" + RECIPIENT + "'])\n"
+                        + "}", true));
+
+        Mailbox inbox = getMailbox(RECIPIENT);
+        inbox.clear();
+        WorkflowRun b = rule.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
+        assertEquals(1, inbox.size());
+        assertEquals("Build failed in Jenkins: " + b.getFullDisplayName(), inbox.get(0).getSubject());
+        assertThat(rule.getLog(b), containsString("Sending e-mails to"));
+    }
+
     private final class TestProject {
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -370,7 +386,9 @@ public class MailerTest {
             assertThat(emailContent, containsString(expectedInMessage));
         }
 
-        void checkSendingContent() {
+        void checkSendingContent() throws Exception {
+            Mailbox inbox = getMailbox(RECIPIENT);
+            assertEquals(1, inbox.size());
             assertThat(log, containsString("Sending e-mails to"));
         }
     }

@@ -29,15 +29,12 @@ import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.RestrictedSince;
 import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.User;
-import hudson.model.UserPropertyDescriptor;
+import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
@@ -81,6 +78,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
 import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -90,7 +88,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  *
  * @author Kohsuke Kawaguchi
  */
-public class Mailer extends Notifier {
+public class Mailer extends Notifier implements SimpleBuildStep {
     protected static final Logger LOGGER = Logger.getLogger(Mailer.class.getName());
 
     /**
@@ -133,7 +131,14 @@ public class Mailer extends Notifier {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "build cannnot be null and the workspace is not used in case it was null")
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        perform(build, build.getWorkspace(), launcher, listener);
+        return true;
+    }
+
+    @Override
+    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
         if(debug)
             listener.getLogger().println("Running mailer");
         // substitute build parameters
@@ -166,8 +171,6 @@ public class Mailer extends Notifier {
                 return false;
             }
         }.run(build,listener);
-
-        return true;
     }
 
     /**
