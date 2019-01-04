@@ -162,6 +162,11 @@ public class MailerTest {
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */
     private static class CleanJenkinsLocationConfiguration extends JenkinsLocationConfiguration {
+        public CleanJenkinsLocationConfiguration() {
+            super();
+            load();
+        }
+
         @Override
         public synchronized void load() {
             getConfigFile().delete();
