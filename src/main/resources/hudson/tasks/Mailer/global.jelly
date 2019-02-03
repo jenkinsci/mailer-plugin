@@ -35,8 +35,8 @@ THE SOFTWARE.
 
       <f:optionalProperty title="${%Use SMTP Authentication}" field="authentication"/>
 
-      <f:entry title="${%Use SSL}" field="useSsl">
-        <f:checkbox />
+      <f:entry>
+        <f:checkbox title="${%Use SSL}" field="useSsl" />
       </f:entry>
       <f:entry title="${%SMTP Port}" field="smtpPort">
         <f:textbox />
