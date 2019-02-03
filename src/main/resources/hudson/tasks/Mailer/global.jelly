@@ -41,9 +41,7 @@ THE SOFTWARE.
           <f:password />
         </f:entry>
       </f:optionalBlock>
-      <f:entry title="${%Use SSL}" field="useSsl">
-        <f:checkbox />
-      </f:entry>
+      <f:optionalBlock title="${%Use SSL}" field="useSsl" />
       <f:entry title="${%SMTP Port}" field="smtpPort">
         <f:textbox />
       </f:entry>
