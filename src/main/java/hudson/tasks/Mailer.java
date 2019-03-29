@@ -119,9 +119,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public Mailer() {}
 
     /**
-     * @param recipients
+     * @param recipients one or more recipients with separators
      * @param notifyEveryUnstableBuild inverted for historical reasons.
-     * @param sendToIndividuals
+     * @param sendToIndividuals if {@code true} mails are sent to individual committers
      */
     @DataBoundConstructor
     public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
@@ -183,6 +183,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     private static Pattern ADDRESS_PATTERN = Pattern.compile("\\s*([^<]*)<([^>]+)>\\s*");
     
     /**
+     * Deprecated! Converts a string to {@link InternetAddress}.
+     * @param strAddress Address string
+     * @param charset Charset (encoding) to be used
+     * @return {@link InternetAddress} for the specified string
+     * @throws AddressException Malformed address
+     * @throws UnsupportedEncodingException Unsupported encoding
+     *
      * @deprecated Use {@link #stringToAddress(java.lang.String, java.lang.String)}.
      */
     @Deprecated
@@ -324,7 +331,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             this.replyToAddress = Util.fixEmpty(address);
         }
 
-        /** JavaMail session. */
+        /**
+         * Creates a JavaMail session.
+         * @return mail session based on the underlying session parameters.
+         */
         public Session createSession() {
             return createSession(smtpHost,smtpPort,useSsl,smtpAuthUsername,smtpAuthPassword);
         }
@@ -427,7 +437,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @return administrator mail address
          */
         public String getAdminAddress() {
             return getJenkinsLocationConfiguration().getAdminAddress();
@@ -435,7 +446,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @return Jenkins base URL
          */
         public String getUrl() {
             return getJenkinsLocationConfiguration().getUrl();
@@ -478,7 +490,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @param hudsonUrl Jenkins base URL to set
          */
         public void setHudsonUrl(String hudsonUrl) {
             getJenkinsLocationConfiguration().setUrl(hudsonUrl);
@@ -486,7 +499,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration}
+         *      Use {@link JenkinsLocationConfiguration} instead
+         * @param adminAddress Jenkins administrator mail address to set
          */
         public void setAdminAddress(String adminAddress) {
             getJenkinsLocationConfiguration().setAdminAddress(adminAddress);
@@ -554,16 +568,24 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Send an email to the admin address
-         * @throws IOException
-         * @throws ServletException
-         * @throws InterruptedException
+         * @throws IOException in case the active jenkins instance cannot be retrieved
+         * @param smtpServer name of the SMTP server to use for mail sending
+         * @param adminAddress Jenkins administrator mail address
+         * @param useSmtpAuth if set to {@code true} SMTP is used without authentication (username and password)
+         * @param smtpAuthUserName plaintext username for SMTP authentication
+         * @param smtpAuthPasswordSecret plaintext password for SMTP authentication
+         * @param useSsl if set to {@code true} SSL is used
+         * @param smtpPort port to use for SMTP transfer
+         * @param charset charset of the underlying MIME-mail message
+         * @param sendTestMailTo mail address to send test mail to
+         * @return response with http status code depending on the result of the mail sending
          */
         @RequirePOST
         public FormValidation doSendTestMail(
-                @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSMTPAuth,
+                @QueryParameter String smtpServer, @QueryParameter String adminAddress, @QueryParameter boolean useSmtpAuth,
                 @QueryParameter String smtpAuthUserName, @QueryParameter Secret smtpAuthPasswordSecret,
                 @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
-                @QueryParameter String sendTestMailTo) throws IOException, ServletException, InterruptedException {
+                @QueryParameter String sendTestMailTo) throws IOException {
             try {
                 // TODO 1.590+ Jenkins.getActiveInstance
                 final Jenkins jenkins = Jenkins.getInstance();
@@ -573,7 +595,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
                 jenkins.checkPermission(Jenkins.ADMINISTER);
                 
-                if (!useSMTPAuth) {
+                if (!useSmtpAuth) {
                     smtpAuthUserName = null;
                     smtpAuthPasswordSecret = null;
                 }
@@ -649,6 +671,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Has the user configured a value explicitly (true), or is it inferred (false)?
+         * @return {@code true} if there is an email address available.
          */
         public boolean hasExplicitlyConfiguredAddress() {
             return Util.fixEmptyAndTrim(emailAddress)!=null;
