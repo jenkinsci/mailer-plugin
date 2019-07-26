@@ -5,7 +5,7 @@ update_configs:
   update_schedule: "weekly"
   default_reviewers:
     - "oleg-nenashev"
-    - "runzexia"
+    - "alecharp"
   ignored_updates:
     - match:
         dependency_name: "org.jenkins-ci.main:jenkins-core"
