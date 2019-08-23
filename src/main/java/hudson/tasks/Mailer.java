@@ -251,12 +251,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private String hudsonUrl;
 
-        /** @deprecated as of 1.22, use {@link #authentication} */
+        /** @deprecated as of 1.23, use {@link #authentication} */
         @Deprecated
         private transient String smtpAuthUsername;
 
         @Deprecated
-        /** @deprecated as of 1.22, use {@link #authentication} */
+        /** @deprecated as of 1.23, use {@link #authentication} */
         private transient Secret smtpAuthPassword;
 
         private SMTPAuthentication authentication;
