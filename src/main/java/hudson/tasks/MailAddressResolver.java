@@ -95,6 +95,8 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Since {@link MailAddressResolver} is singleton, this method can be invoked concurrently
      * from multiple threads.
      *
+     * @param u  a given user to resolve address for
+     *
      * @return
      *      null if the inference failed.
      */
@@ -104,6 +106,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Try to resolve email address using resolvers.
      * If a user specifies a Mail {@link UserProperty}, then it will be used with
      * the highest priority.
+     * @param u user to resolve address for
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
@@ -217,7 +220,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
     public static final List<MailAddressResolver> LIST = ExtensionListView.createList(MailAddressResolver.class);
 
     /**
-     * Returns all the registered {@link MailAddressResolver} descriptors.
+     * @return all the registered {@link MailAddressResolver} descriptors.
      */
     public static ExtensionList<MailAddressResolver> all() {
         return ExtensionList.lookup(MailAddressResolver.class);

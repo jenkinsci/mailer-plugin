@@ -26,23 +26,26 @@ package hudson.tasks;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
-import hudson.Util;
 import hudson.Functions;
+import hudson.Util;
 import hudson.model.*;
 import hudson.scm.ChangeLogSet;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
 import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import javax.mail.internet.AddressException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -50,10 +53,6 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 
 /**
  * Core logic of sending out notification e-mail.
@@ -177,26 +176,31 @@ public class MailSender {
         } catch (NoSuchMethodException x) {
             // non-deprecated subclass
         }
+
         if (build.getResult() == Result.FAILURE) {
             return createFailureMail(build, listener);
         }
-
         if (build.getResult() == Result.UNSTABLE) {
-            if (!dontNotifyEveryUnstableBuild)
+            if (!dontNotifyEveryUnstableBuild) {
                 return createUnstableMail(build, listener);
+            }
             Result prev = findPreviousBuildResult(build);
-            if (prev == Result.SUCCESS || prev == null)
+            if (prev == Result.SUCCESS || prev == null) {
                 return createUnstableMail(build, listener);
+            }
         }
 
         if (build.getResult() == Result.SUCCESS) {
             Result prev = findPreviousBuildResult(build);
-            if (prev == Result.FAILURE)
+            if (prev == Result.FAILURE) {
                 return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Normal(), listener);
-            if (prev == Result.UNSTABLE)
+            }
+            if (prev == Result.UNSTABLE) {
                 return createBackToNormalMail(build, Messages.MailSender_BackToNormal_Stable(), listener);
+            }
         }
 
+        listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
         return null;
     }
 
@@ -270,12 +274,10 @@ public class MailSender {
         StringBuilder buf = new StringBuilder();
         appendBuildUrl(build, buf);
 
-        boolean firstChange = true;
+        // add new line before iterating over changes to have a proper formatting in the mail itself
+        buf.append(Messages.MailSender_FailureMail_Changes()).append("\n\n");
+
         for (ChangeLogSet.Entry entry : getChangeSet(build)) {
-            if (firstChange) {
-                firstChange = false;
-                buf.append(Messages.MailSender_FailureMail_Changes()).append("\n\n");
-            }
             buf.append('[');
             buf.append(entry.getAuthor().getFullName());
             buf.append("] ");
@@ -496,6 +498,9 @@ public class MailSender {
 
     /**
      * Check whether a path (/-separated) will be archived.
+     * @param build current build
+     * @param path given path, separated by {@code /}
+     * @return always returns {@code false} to not archive anything
      */
     protected boolean artifactMatches(String path, AbstractBuild<?, ?> build) {
         return false;

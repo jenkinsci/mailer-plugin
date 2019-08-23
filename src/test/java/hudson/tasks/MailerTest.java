@@ -23,10 +23,13 @@
  */
 package hudson.tasks;
 
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.User;
+import hudson.Launcher;
+import hudson.model.*;
+import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
@@ -36,6 +39,7 @@ import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
 import org.jvnet.mock_javamail.Mailbox;
 
@@ -44,6 +48,7 @@ import javax.mail.internet.InternetAddress;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
@@ -51,7 +56,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -157,6 +162,11 @@ public class MailerTest {
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */
     private static class CleanJenkinsLocationConfiguration extends JenkinsLocationConfiguration {
+        public CleanJenkinsLocationConfiguration() {
+            super();
+            load();
+        }
+
         @Override
         public synchronized void load() {
             getConfigFile().delete();
@@ -254,6 +264,36 @@ public class MailerTest {
             .buildAndCheckContent();
     }
 
+    @Issue("JENKINS-37812")
+    @Test
+    public void testFailureSendMessage() throws Exception {
+        DumbSlave node = rule.createSlave();
+        Mailer m = new MailerDisconnecting(rule, node, RECIPIENT, true, false);
+
+        new TestProject(m)
+                .withNode(node)
+                .failure()
+                .buildAndCheckSending();
+    }
+
+    @Issue("JENKINS-37812")
+    @Test
+    public void testPipelineCompatibility() throws Exception {
+        WorkflowJob p = rule.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(
+                "node {\n"
+                        + "    catchError {error 'oops'}\n"
+                        + "    step([$class: 'Mailer', recipients: '" + RECIPIENT + "'])\n"
+                        + "}", true));
+
+        Mailbox inbox = getMailbox(RECIPIENT);
+        inbox.clear();
+        WorkflowRun b = rule.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
+        assertThat("One email should have been sent", inbox, hasSize(1));
+        assertEquals("Build failed in Jenkins: " + b.getFullDisplayName(), inbox.get(0).getSubject());
+        assertThat(rule.getLog(b), containsString("Sending e-mails to"));
+    }
+
     private final class TestProject {
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -262,6 +302,11 @@ public class MailerTest {
             project = rule.createFreeStyleProject();
             project.setScm(scm);
             project.getPublishersList().add(m);
+        }
+
+        TestProject withNode(DumbSlave node) throws Exception {
+            project.setAssignedNode(node);
+            return this;
         }
 
         TestProject changeStatus(Builder status) {
@@ -314,6 +359,12 @@ public class MailerTest {
 
             return this;
         }
+
+        TestProject buildAndCheckSending() throws Exception {
+            build(RECIPIENT).checkSendingContent();
+
+            return this;
+        }
     }
 
     private final class TestBuild {
@@ -340,6 +391,50 @@ public class MailerTest {
             String emailContent = getMailbox(RECIPIENT).get(0).getContent().toString();
             assertThat(emailContent, containsString(expectedInMessage));
         }
+
+        void checkSendingContent() throws Exception {
+            Mailbox inbox = getMailbox(RECIPIENT);
+            assertThat("One email should have been sent", inbox, hasSize(1));
+            assertThat(log, containsString("Sending e-mails to"));
+        }
     }
 
+    private static final class MailerDisconnecting extends Mailer {
+        private transient final JenkinsRule rule;
+        private transient final DumbSlave node;
+
+        private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+            super(recipients, notifyEveryUnstableBuild, sendToIndividuals);
+            this.rule = rule;
+            this.node = node;
+        }
+
+        @Override
+        public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+            try {
+                rule.disconnectSlave(node);
+            } catch (Exception e) {
+                throw new IOException(String.format("Impossible to disconnect %s", node.getDisplayName()), e);
+            }
+
+            return super.perform(build, launcher, listener);
+        }
+
+        @TestExtension
+        public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+
+            public DescriptorImpl() {
+                load();
+            }
+
+            public String getDisplayName() {
+                return "TestDescriptor";
+            }
+
+            public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+                return true;
+            }
+        }
+
+    }
 }
