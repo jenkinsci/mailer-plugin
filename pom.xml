@@ -24,6 +24,7 @@
   <properties>
     <java.level>8</java.level>
     <jenkins.version>2.150.1</jenkins.version>
+    <jcasc.version>1.29</jcasc.version>
   </properties>
   <dependencies>
     <dependency>
@@ -141,6 +142,20 @@
       <groupId>org.jenkins-ci</groupId>
       <artifactId>annotation-indexer</artifactId>
       <version>1.12</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- JCasC compatibility -->
+    <dependency>
+      <groupId>io.jenkins</groupId>
+      <artifactId>configuration-as-code</artifactId>
+      <version>${jcasc.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins</groupId>
+      <artifactId>configuration-as-code</artifactId>
+      <version>${jcasc.version}</version>
+      <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
   </dependencies>
