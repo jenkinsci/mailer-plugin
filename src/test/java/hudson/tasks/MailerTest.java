@@ -423,6 +423,8 @@ public class MailerTest {
         @TestExtension
         public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
+            private SMTPAuthentication authentication;
+
             public DescriptorImpl() {
                 load();
             }
@@ -433,6 +435,10 @@ public class MailerTest {
 
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
+            }
+
+            public SMTPAuthentication getAuthentication() {
+                return authentication;
             }
         }
 
