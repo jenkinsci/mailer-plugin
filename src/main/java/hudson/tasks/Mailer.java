@@ -399,7 +399,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             try {
                 // reset optional authentication to default before data-binding
                 // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
-                setAuthentication(null);
+                this.authentication = null;
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
