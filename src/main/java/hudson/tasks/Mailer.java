@@ -404,10 +404,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
-                this.authentication = current;
                 b.abort();
                 throw new FormException("Failed to apply configuration", e, null);
+            } finally {
+                this.authentication = current;
             }
+            
             return true;
         }
 
