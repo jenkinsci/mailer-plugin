@@ -41,6 +41,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
+import org.jvnet.hudson.test.recipes.LocalData;
 import org.jvnet.mock_javamail.Mailbox;
 
 import javax.mail.Address;
@@ -57,6 +58,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -294,6 +296,21 @@ public class MailerTest {
         assertThat(rule.getLog(b), containsString("Sending e-mails to"));
     }
 
+    @Issue("JENKINS-55109")
+    @Test
+    @LocalData
+    public void testMigrateOldData() {
+        Mailer.DescriptorImpl descriptor = Mailer.descriptor();
+        assertTrue("Mailer can not be found", descriptor != null);
+        assertEquals(String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()), "olduser", descriptor.getAuthentication().getUsername());
+        assertEquals(String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
+        assertEquals(String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
+        assertEquals(String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()), "noreplay@mydomain.com", descriptor.getReplyToAddress());
+        assertEquals(String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()), "old.data.smtp.host", descriptor.getSmtpHost());
+        assertEquals(String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()), "808080", descriptor.getSmtpPort());
+        assertTrue("SSL should be used", descriptor.getUseSsl());
+    }
+
     private final class TestProject {
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -423,6 +440,8 @@ public class MailerTest {
         @TestExtension
         public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
+            private SMTPAuthentication authentication;
+
             public DescriptorImpl() {
                 load();
             }
@@ -433,6 +452,10 @@ public class MailerTest {
 
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
+            }
+
+            public SMTPAuthentication getAuthentication() {
+                return authentication;
             }
         }
 

@@ -1,0 +1,11 @@
+unclassified:
+  mailer:
+    authentication:
+      password: "{AQAAABAAAAAQerzX1sPSYnExkhL/IPqqen3IXjJDVYLe/PR1+30xdA8=}"
+      username: "fakeuser"
+    charset: "UTF-8"
+    defaultSuffix: "@mydomain.com"
+    replyToAddress: "noreplay@mydomain.com"
+    smtpHost: "smtp.acme.com"
+    smtpPort: "808080"
+    useSsl: true

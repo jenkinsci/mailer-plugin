@@ -27,6 +27,7 @@ package hudson.tasks;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static hudson.Util.fixEmptyAndTrim;
 
+import hudson.BulkChange;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -73,6 +74,7 @@ import javax.servlet.ServletException;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
@@ -258,12 +260,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private String hudsonUrl;
 
-        /**
-         * If non-null, use SMTP-AUTH with these information.
-         */
-        private String smtpAuthUsername;
+        /** @deprecated as of 1.23, use {@link #authentication} */
+        @Deprecated
+        private transient String smtpAuthUsername;
 
-        private Secret smtpAuthPassword;
+        @Deprecated
+        /** @deprecated as of 1.23, use {@link #authentication} */
+        private transient Secret smtpAuthPassword;
+
+        private SMTPAuthentication authentication;
 
         /**
          * The e-mail address that Hudson puts to "From:" field in outgoing e-mails.
@@ -327,8 +332,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return replyToAddress;
         }
 
+        @DataBoundSetter
         public void setReplyToAddress(String address) {
             this.replyToAddress = Util.fixEmpty(address);
+            save();
         }
 
         /**
@@ -387,27 +394,22 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            // this code is brain dead
-            smtpHost = nullify(json.getString("smtpServer"));
-            setReplyToAddress(json.getString("replyToAddress"));
 
-            defaultSuffix = nullify(json.getString("defaultSuffix"));
-
-            if(json.has("useSMTPAuth")) {
-                JSONObject auth = json.getJSONObject("useSMTPAuth");
-                smtpAuthUsername = nullify(auth.getString("smtpAuthUserName"));
-                smtpAuthPassword = Secret.fromString(nullify(auth.getString("smtpAuthPasswordSecret")));
-            } else {
-                smtpAuthUsername = null;
-                smtpAuthPassword = null;
+            BulkChange b = new BulkChange(this);
+            SMTPAuthentication current = this.authentication;
+            try {
+                // reset optional authentication to default before data-binding
+                // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
+                this.authentication = null;
+                req.bindJSON(this, json);
+                b.commit();
+            } catch (IOException e) {
+                b.abort();
+                throw new FormException("Failed to apply configuration", e, null);
+            } finally {
+                this.authentication = current;
             }
-            smtpPort = nullify(json.getString("smtpPort"));
-            useSsl = json.getBoolean("useSsl");
-            charset = json.getString("charset");
-            if (charset == null || charset.length() == 0)
-            	charset = "UTF-8";
             
-            save();
             return true;
         }
 
@@ -416,6 +418,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return v;
         }
 
+        public String getSmtpHost() {
+            return smtpHost;
+        }
+
+        @Deprecated
+        /** @deprecated as of 1.23, use {@link #getSmtpHost()} */
         public String getSmtpServer() {
             return smtpHost;
         }
@@ -440,6 +448,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration} instead
          * @return administrator mail address
          */
+        @Deprecated
         public String getAdminAddress() {
             return getJenkinsLocationConfiguration().getAdminAddress();
         }
@@ -449,17 +458,29 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration} instead
          * @return Jenkins base URL
          */
+        @Deprecated
         public String getUrl() {
             return getJenkinsLocationConfiguration().getUrl();
         }
 
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public String getSmtpAuthUserName() {
-            return smtpAuthUsername;
+            if (authentication == null) return null;
+            return authentication.getUsername();
         }
 
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public String getSmtpAuthPassword() {
-            if (smtpAuthPassword==null) return null;
-            return Secret.toString(smtpAuthPassword);
+            if (authentication == null) return null;
+            return Secret.toString(authentication.getPassword());
         }
 
         public Secret getSmtpAuthPasswordSecret() {
@@ -474,18 +495,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         	return smtpPort;
         }
 
-        public String getSmtpHost() {
-            return smtpHost;
-        }
-
         public String getCharset() {
         	String c = charset;
         	if (c == null || c.length() == 0)	c = "UTF-8";
         	return c;
         }
 
+        @DataBoundSetter
         public void setDefaultSuffix(String defaultSuffix) {
             this.defaultSuffix = defaultSuffix;
+            save();
         }
 
         /**
@@ -493,6 +512,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration} instead
          * @param hudsonUrl Jenkins base URL to set
          */
+        @Deprecated
         public void setHudsonUrl(String hudsonUrl) {
             getJenkinsLocationConfiguration().setUrl(hudsonUrl);
         }
@@ -502,29 +522,60 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Use {@link JenkinsLocationConfiguration} instead
          * @param adminAddress Jenkins administrator mail address to set
          */
+        @Deprecated
         public void setAdminAddress(String adminAddress) {
             getJenkinsLocationConfiguration().setAdminAddress(adminAddress);
         }
 
+        @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
-            this.smtpHost = smtpHost;
+            this.smtpHost = nullify(smtpHost);
+            save();
         }
 
+        @DataBoundSetter
         public void setUseSsl(boolean useSsl) {
             this.useSsl = useSsl;
+            save();
         }
 
+        @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
             this.smtpPort = smtpPort;
-        }
-        
-        public void setCharset(String chaset) {
-            this.charset = chaset;
+            save();
         }
 
+        @DataBoundSetter
+        public void setCharset(String charset) {
+            if (charset == null || charset.length() == 0) {
+                charset = "UTF-8";
+            }
+            this.charset = charset;
+            save();
+        }
+
+        @DataBoundSetter
+        public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
+            this.authentication = authentication;
+            save();
+        }
+
+        @CheckForNull
+        public SMTPAuthentication getAuthentication() {
+            return authentication;
+        }
+
+        /**
+         * @deprecated as of 1.21
+         *      Use {@link #authentication}
+         */
+        @Deprecated
         public void setSmtpAuth(String userName, String password) {
-            this.smtpAuthUsername = userName;
-            this.smtpAuthPassword = Secret.fromString(password);
+            if (userName == null && password == null) {
+                this.authentication = null;
+            } else {
+                this.authentication = new SMTPAuthentication(userName, Secret.fromString(password));
+            }
         }
 
         @Override
@@ -538,6 +589,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             return m;
+        }
+
+        private Object readResolve() {
+            if (smtpAuthPassword != null) {
+                authentication = new SMTPAuthentication(smtpAuthUsername, smtpAuthPassword);
+            }
+            return this;
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
