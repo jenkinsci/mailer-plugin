@@ -61,4 +61,4 @@ If the recipient list is empty, then only the individuals will receive e-mails.
 == Changelog
 
 * For recent versions, see https://github.com/jenkinsci/mailer-plugin/releases[GitHub Releases]
-* For versions 1.29 and older, see the https://wiki.jenkins.io/display/JENKINS/Mailer[Wiki page]
+* For versions 1.23 and older, see the https://wiki.jenkins.io/display/JENKINS/Mailer[Wiki page]
