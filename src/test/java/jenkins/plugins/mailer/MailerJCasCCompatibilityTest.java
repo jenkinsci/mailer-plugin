@@ -25,6 +25,6 @@ public class MailerJCasCCompatibilityTest extends RoundTripAbstractTest {
 
     @Override
     protected String stringInLogExpected() {
-        return "Setting class hudson.tasks.SMTPAuthentication. username = fakeuser";
+        return "Setting class hudson.tasks.SMTPAuthentication.username = fakeuser";
     }
 }
