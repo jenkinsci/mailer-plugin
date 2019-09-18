@@ -164,7 +164,8 @@ public class MailerTest {
 
     @Test
     public void globalConfig() throws Exception {
-        HtmlPage cp = rule.createWebClient().goTo("configure");
+        WebClient webClient = rule.createWebClient();
+        HtmlPage cp = webClient.goTo("configure");
         HtmlForm form = cp.getFormByName("config");
 
         form.getInputByName("_.smtpHost").setValueAttribute("acme.com");
@@ -182,6 +183,13 @@ public class MailerTest {
         assertNotNull(auth);
         assertEquals("user", auth.getUsername());
         assertEquals("pass", auth.getPassword().getPlainText());
+
+        cp = webClient.goTo("configure");
+        form = cp.getFormByName("config");
+        form.getInputByName("_.authentication").setChecked(false);
+        rule.submit(form);
+
+        assertNull(d.getAuthentication());
     }
     
     /**
