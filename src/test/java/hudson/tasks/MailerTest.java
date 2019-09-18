@@ -23,10 +23,13 @@
  */
 package hudson.tasks;
 
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -53,6 +56,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -135,29 +139,49 @@ public class MailerTest {
         DescriptorImpl d = Mailer.descriptor();
         JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
         d.setDefaultSuffix("default-suffix");
-        d.setHudsonUrl("http://nowhere/");
         d.setSmtpHost("smtp.host");
         d.setSmtpPort("1025");
         d.setUseSsl(true);
-        d.setSmtpAuth("user","pass");
+        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("admin@me", JenkinsLocationConfiguration.get().getAdminAddress());
         assertEquals("default-suffix",d.getDefaultSuffix());
-        assertEquals("http://nowhere/",d.getUrl());
-        assertEquals("smtp.host",d.getSmtpServer());
+        assertEquals("smtp.host",d.getSmtpHost());
         assertEquals("1025",d.getSmtpPort());
         assertEquals(true,d.getUseSsl());
-        assertEquals("user",d.getSmtpAuthUserName());
-        assertEquals("pass",d.getSmtpAuthPassword());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
 
         d.setUseSsl(false);
-        d.setSmtpAuth(null,null);
+        d.setAuthentication(null);
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
         assertEquals(false,d.getUseSsl());
-        assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
-        assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
+        assertNull(d.getAuthentication());
+    }
+
+    @Test
+    public void globalConfig() throws Exception {
+        HtmlPage cp = rule.createWebClient().goTo("configure");
+        HtmlForm form = cp.getFormByName("config");
+
+        form.getInputByName("_.smtpHost").setValueAttribute("acme.com");
+        form.getInputByName("_.defaultSuffix").setValueAttribute("@acme.com");
+        form.getInputByName("_.authentication").setChecked(true);
+        form.getInputByName("_.username").setValueAttribute("user");
+        form.getInputByName("_.password").setValueAttribute("pass");
+
+        rule.submit(form);
+
+        DescriptorImpl d = Mailer.descriptor();
+        assertEquals("acme.com", d.getSmtpHost());
+        assertEquals("@acme.com", d.getDefaultSuffix());
+        SMTPAuthentication auth = d.getAuthentication();
+        assertNotNull(auth);
+        assertEquals("user", auth.getUsername());
+        assertEquals("pass", auth.getPassword().getPlainText());
     }
     
     /**
