@@ -396,18 +396,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
             BulkChange b = new BulkChange(this);
+            // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
+            // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
+            // case of failure to databind, it gets reverted to previous value.
+            // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
             SMTPAuthentication current = this.authentication;
             try {
-                // reset optional authentication to default before data-binding
-                // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
                 this.authentication = null;
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
+                this.authentication = current;
                 b.abort();
                 throw new FormException("Failed to apply configuration", e, null);
-            } finally {
-                this.authentication = current;
             }
             
             return true;
