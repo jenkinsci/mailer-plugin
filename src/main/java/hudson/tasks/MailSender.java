@@ -200,7 +200,10 @@ public class MailSender {
             }
         }
 
-        listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
+        if (build.getResult() == null) {
+            listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
+        }
+
         return null;
     }
 
