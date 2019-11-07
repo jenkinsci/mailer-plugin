@@ -2,7 +2,7 @@ Mailer plugin for Jenkins
 =========================
 
 image:https://img.shields.io/jenkins/plugin/v/mailer.svg[link="https://plugins.jenkins.io/mailer"]
-image:https://img.shields.io/github/release/jenkinsci/mailer-plugin.svg?label=release[link="https://github.com/jenkinsci/mailer-plugin/releases/latest"]
+image:https://img.shields.io/github/release/jenkinsci/mailer-plugin.svg?label=changelog[link="https://github.com/jenkinsci/mailer-plugin/releases/latest"]
 image:https://img.shields.io/jenkins/plugin/i/mailer.svg?color=blue[link="https://plugins.jenkins.io/mailer"]
 
 
