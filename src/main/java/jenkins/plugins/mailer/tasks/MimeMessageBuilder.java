@@ -27,6 +27,7 @@ package jenkins.plugins.mailer.tasks;
 import com.google.common.collect.Lists;
 import hudson.model.TaskListener;
 import hudson.remoting.Base64;
+import hudson.tasks.EnhancedMessage;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -195,7 +196,8 @@ public class MimeMessageBuilder {
      * @throws UnsupportedEncodingException in case of encoding problems
      */
     public MimeMessage buildMimeMessage() throws MessagingException, UnsupportedEncodingException {
-        MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
+        EnhancedMessage msg = new EnhancedMessage(Mailer.descriptor().createSession());
+        msg.setNewMessageIdDomain(Mailer.descriptor().getMessageIdDomain());
 
         setJenkinsInstanceIdent(msg);
 

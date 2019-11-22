@@ -309,6 +309,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         private String charset;
         
         /**
+         * The new domain for Message-ID header.
+         */
+        private String messageIdDomain;
+        
+        /**
          * Used to keep track of number test e-mails.
          */
         private static transient AtomicInteger testEmailCount = new AtomicInteger(0);
@@ -557,6 +562,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @DataBoundSetter
+        public void setMessageIdDomain(String messageIdDomain) {
+            this.messageIdDomain = messageIdDomain;
+            save();
+        }
+
+        public String getMessageIdDomain() {
+            return this.messageIdDomain;
+        }
+
+        @DataBoundSetter
         public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
             this.authentication = authentication;
             save();
@@ -626,6 +641,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
         }
 
+        public FormValidation doCheckMessageIdDomain(@QueryParameter String value) {
+            if (value.matches("^@[A-Za-z0-9.\\-]+") || fixEmptyAndTrim(value)==null)
+                return FormValidation.ok();
+            else
+                return FormValidation.error(Messages.Mailer_Suffix_Error());
+        }
+
         /**
          * Send an email to the admin address
          * @throws IOException in case the active jenkins instance cannot be retrieved
@@ -660,7 +682,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     password = null;
                 }
                 
-                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, username, password));
+                EnhancedMessage msg = new EnhancedMessage(createSession(smtpHost, smtpPort, useSsl, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
@@ -669,6 +691,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 }
                 msg.setSentDate(new Date());
                 msg.setRecipient(Message.RecipientType.TO, stringToAddress(sendTestMailTo, charset));
+                msg.setNewMessageIdDomain(this.messageIdDomain);
 
                 Transport.send(msg);                
                 return FormValidation.ok(Messages.Mailer_EmailSentSuccessfully());
