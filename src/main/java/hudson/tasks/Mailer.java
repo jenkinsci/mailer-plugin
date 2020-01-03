@@ -422,7 +422,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
-            // TODO try-with-resources for BulkChange instance?
+            // TODO(alfabravoteam): try-with-resources for BulkChange instance? (JENIINS-TODO)
             BulkChange b = new BulkChange(this);
             // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
             // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
