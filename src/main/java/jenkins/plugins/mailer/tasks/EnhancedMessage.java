@@ -10,8 +10,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 /**
  * A special class for overriding Message-ID header.
  * Some e-mail servers put the mail into spam if Message-ID header domain
- * does not correspond to e-mail server domain. This class helps to overcome
- * the issue.
+ * does not correspond to e-mail server domain. This class helps to overcome the issue.
  *
  * @author Vitaly Krivenko
  */
