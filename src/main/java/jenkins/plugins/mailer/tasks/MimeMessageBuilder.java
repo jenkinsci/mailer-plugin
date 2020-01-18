@@ -27,7 +27,6 @@ package jenkins.plugins.mailer.tasks;
 import com.google.common.collect.Lists;
 import hudson.model.TaskListener;
 import hudson.remoting.Base64;
-import hudson.tasks.EnhancedMessage;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;

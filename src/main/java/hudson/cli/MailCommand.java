@@ -23,12 +23,11 @@
  */
 package hudson.cli;
 
-import hudson.tasks.EnhancedMessage;
+import jenkins.plugins.mailer.tasks.EnhancedMessage;
 import hudson.tasks.Mailer;
 import hudson.Extension;
 import jenkins.model.Jenkins;
 
-import javax.mail.internet.MimeMessage;
 import javax.mail.Transport;
 
 /**
