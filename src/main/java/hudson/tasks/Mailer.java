@@ -43,6 +43,7 @@ import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -692,6 +693,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private final String emailAddress;
 
+        @DataBoundConstructor
         public UserProperty(String emailAddress) {
             this.emailAddress = emailAddress;
         }
@@ -714,7 +716,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             // try the inference logic
             return MailAddressResolver.resolveFast(user);
         }
-        
+
+        @CheckForNull
+        public String getEmailAddress() {
+            return Util.fixEmptyAndTrim(emailAddress);
+        }
+
         /**
          * Gets an email address, which have been explicitly configured on the
          * user's configuration page.
@@ -738,6 +745,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Extension
+        @Symbol("mailer")
         public static final class DescriptorImpl extends UserPropertyDescriptor {
             public String getDisplayName() {
                 return Messages.Mailer_UserProperty_DisplayName();
