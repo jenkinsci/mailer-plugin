@@ -33,6 +33,7 @@ Leave it empty to use the default port for the protocol (`465` if using SSL, `25
 * **Reply-To Address**: Address to include in the `Reply-To` header.
 Up to version `1.16`, only one address is allowed, starting in version `1.17` more than one can be used.
 * **Charset**: character set to use to construct the message.
+* **Replace Message-ID domain with**: Message-ID header new domain name. Specify @mydomain.com to override Message-ID domain name or empty text to leave it default.
 
 In order to test the configuration, you can check the _Test configuration by sending test e-mail_ checkbox, provide a destination address at the _Test e-mail recipient_ field and clicking the _Test configuration_ button.
 

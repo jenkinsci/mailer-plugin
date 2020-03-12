@@ -23,11 +23,11 @@
  */
 package hudson.cli;
 
+import jenkins.plugins.mailer.tasks.EnhancedMessage;
 import hudson.tasks.Mailer;
 import hudson.Extension;
 import jenkins.model.Jenkins;
 
-import javax.mail.internet.MimeMessage;
 import javax.mail.Transport;
 
 /**
@@ -47,7 +47,9 @@ public class MailCommand extends CLICommand {
     protected int run() throws Exception {
         Jenkins jenkins = Jenkins.getActiveInstance();
         jenkins.checkPermission(Jenkins.ADMINISTER);
-        Transport.send(new MimeMessage(Mailer.descriptor().createSession(),stdin));
+        EnhancedMessage message = new EnhancedMessage(Mailer.descriptor().createSession(),stdin);
+        message.setNewMessageIdDomain(Mailer.descriptor().getMessageIdDomain());
+        Transport.send(message);
         return 0;
     }
 }

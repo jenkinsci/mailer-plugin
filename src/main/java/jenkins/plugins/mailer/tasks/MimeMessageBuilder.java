@@ -195,7 +195,8 @@ public class MimeMessageBuilder {
      * @throws UnsupportedEncodingException in case of encoding problems
      */
     public MimeMessage buildMimeMessage() throws MessagingException, UnsupportedEncodingException {
-        MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
+        EnhancedMessage msg = new EnhancedMessage(Mailer.descriptor().createSession());
+        msg.setNewMessageIdDomain(Mailer.descriptor().getMessageIdDomain());
 
         setJenkinsInstanceIdent(msg);
 
