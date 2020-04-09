@@ -522,6 +522,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         	return useSsl;
         }
 
+        public boolean getUseTls() {
+            return useTls;
+        }
+
         public String getSmtpPort() {
         	return smtpPort;
         }

@@ -9,3 +9,4 @@ unclassified:
     smtpHost: "smtp.acme.com"
     smtpPort: "808080"
     useSsl: true
+    useTls: true
