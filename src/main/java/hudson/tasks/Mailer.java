@@ -234,12 +234,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public static DescriptorImpl DESCRIPTOR;
 
     public static DescriptorImpl descriptor() {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        final Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins instance is not ready");
-        }
-        return jenkins.getDescriptorByType(Mailer.DescriptorImpl.class);
+        return Jenkins.get().getDescriptorByType(Mailer.DescriptorImpl.class);
     }
 
     @Extension
@@ -693,14 +688,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
-                // TODO 1.590+ Jenkins.getActiveInstance
-                final Jenkins jenkins = Jenkins.getInstance();
-                if (jenkins == null) {
-                    throw new IOException("Jenkins instance is not ready");
-                }
+                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
-                jenkins.checkPermission(Jenkins.ADMINISTER);
-                
                 if (!authentication) {
                     username = null;
                     password = null;
@@ -708,7 +697,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 
                 MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
-                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
+                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), Jenkins.get().getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
                 if (StringUtils.isNotBlank(replyToAddress)) {
                     msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
