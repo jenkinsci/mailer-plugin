@@ -37,6 +37,7 @@ import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
@@ -324,6 +325,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public DescriptorImpl() {
             load();
             DESCRIPTOR = this;
+        }
+
+        @Nonnull
+        @Override
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return Jenkins.MANAGE;
         }
 
         public String getDisplayName() {
