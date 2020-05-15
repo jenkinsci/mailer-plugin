@@ -31,7 +31,6 @@ import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.AbstractBuild;
-import hudson.model.Hudson;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
