@@ -688,7 +688,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
-                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                Jenkins.get().checkPermission(Jenkins.MANAGE);
 
                 if (!authentication) {
                     username = null;
