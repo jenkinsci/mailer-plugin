@@ -25,6 +25,7 @@ package hudson.tasks;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.ACL;
@@ -32,7 +33,9 @@ import hudson.security.ACLContext;
 import hudson.security.Permission;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.ReflectionUtils;
 import hudson.util.Secret;
+import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -59,8 +62,13 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -353,7 +361,7 @@ public class MailerTest {
     public void managePermissionShouldAccessGlobalConfig() {
         Permission jenkinsManage;
         try {
-            jenkinsManage = Jenkins.MANAGE;
+            jenkinsManage = getJenkinsManage();
         } catch (Exception e) {
             Assume.assumeTrue("Jenkins baseline is too old for this test (requires Jenkins.MANAGE)", false);
             return;
@@ -371,15 +379,23 @@ public class MailerTest {
         );
 
         try (ACLContext c = ACL.as(User.getById(USER, true))) {
-            Descriptor descriptor = Mailer.descriptor();
-            assertTrue("mailer config should not be accessible to READ users",
-                       !Jenkins.get().hasPermission(descriptor.getRequiredGlobalConfigPagePermission()));
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            MatcherAssert.assertThat("Global configuration should not be accessible to READ users", descriptors, is(empty()));
         }
+
         try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
-            Descriptor descriptor = Mailer.descriptor();
-            assertTrue("mailer configuration should be accessible to MANAGE users",
-                       Jenkins.get().hasPermission(descriptor.getRequiredGlobalConfigPagePermission()));
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            Optional<Descriptor> found =
+                    descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
+            assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
         }
+    }
+
+    // TODO: remove when Jenkins core baseline is 2.222+
+    private Permission getJenkinsManage() throws NoSuchMethodException, IllegalAccessException,
+                                                 InvocationTargetException {
+        // Jenkins.MANAGE is available starting from Jenkins 2.222 (https://jenkins.io/changelog/#v2.222). See JEP-223 for more info
+        return (Permission) ReflectionUtils.getPublicProperty(Jenkins.get(), "MANAGE");
     }
 
     private final class TestProject {
