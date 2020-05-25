@@ -26,7 +26,7 @@
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <jenkins.version>2.150.1</jenkins.version>
-    <jcasc.version>1.36</jcasc.version>
+    <jcasc.version>1.41</jcasc.version>
   </properties>
   <dependencies>
     <dependency>
