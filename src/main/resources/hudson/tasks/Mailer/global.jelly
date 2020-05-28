@@ -24,7 +24,6 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <l:hasPermission permission="${app.MANAGE}" >
     <f:section title="${%E-mail Notification}">
       <f:entry title="${%SMTP server}" field="smtpHost">
         <f:textbox />
@@ -59,5 +58,4 @@ THE SOFTWARE.
         <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,username,password,useSsl,useTls,smtpPort,charset" />
       </f:optionalBlock>
     </f:section>
-  </l:hasPermission>
 </j:jelly>
