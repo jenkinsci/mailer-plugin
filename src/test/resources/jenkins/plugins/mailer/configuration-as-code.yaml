@@ -1,8 +1,7 @@
 unclassified:
   mailer:
     authentication:
-      password: "{AQAAABAAAAAQerzX1sPSYnExkhL/IPqqen3IXjJDVYLe/PR1+30xdA8=}"
-      username: "fakeuser"
+      credentialsId: "foo"
     charset: "UTF-8"
     defaultSuffix: "@mydomain.com"
     replyToAddress: "noreplay@mydomain.com"
@@ -10,3 +9,14 @@ unclassified:
     smtpPort: "808080"
     useSsl: true
     useTls: true
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: SYSTEM
+              id: "foo"
+              username: "fakeuser"
+              password: "{AQAAABAAAAAQerzX1sPSYnExkhL/IPqqen3IXjJDVYLe/PR1+30xdA8=}"
+              description: "Mail SMTP auth"
