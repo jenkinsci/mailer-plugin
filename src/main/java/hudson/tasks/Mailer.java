@@ -43,6 +43,7 @@ import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -298,6 +299,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         private boolean useSsl;
 
         /**
+         * If true use TLS on port 587 (standard STARTTLS) unless <code>smtpPort</code> is set.
+         */
+        private boolean useTls;
+
+        /**
          * The SMTP port to use for sending e-mail. Null for default to the environment,
          * which is usually <tt>25</tt>.
          */
@@ -343,9 +349,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @return mail session based on the underlying session parameters.
          */
         public Session createSession() {
-            return createSession(smtpHost,smtpPort,useSsl,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
+            return createSession(smtpHost,smtpPort,useSsl,useTls,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
         }
-        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, String smtpAuthUserName, Secret smtpAuthPassword) {
+        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
+            final String SMTP_PORT_PROPERTY = "mail.smtp.port";
+            final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
+
             smtpPort = fixEmptyAndTrim(smtpPort);
             smtpAuthUserName = fixEmptyAndTrim(smtpAuthUserName);
 
@@ -353,7 +362,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if(fixEmptyAndTrim(smtpHost)!=null)
                 props.put("mail.smtp.host",smtpHost);
             if (smtpPort!=null) {
-                props.put("mail.smtp.port", smtpPort);
+                props.put(SMTP_PORT_PROPERTY, smtpPort);
             }
             if (useSsl) {
             	/* This allows the user to override settings by setting system properties but
@@ -362,16 +371,35 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             	 * and thats done in mail sender, and it would be a bit of a hack to get it all to
             	 * coordinate, and we can make it work through setting mail.smtp properties.
             	 */
-            	if (props.getProperty("mail.smtp.socketFactory.port") == null) {
+            	if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
                     String port = smtpPort==null?"465":smtpPort;
-                    props.put("mail.smtp.port", port);
-                    props.put("mail.smtp.socketFactory.port", port);
+                    props.put(SMTP_PORT_PROPERTY, port);
+                    props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
             	}
             	if (props.getProperty("mail.smtp.socketFactory.class") == null) {
-            		props.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
+                    // TODO SocketFactory properties are now discouraged. Using (`mail.smtp.ssl.enable`, "true") should suffice
+                    // https://javaee.github.io/javamail/FAQ#commonmistakes
+            		// Example also found at https://javaee.github.io/javamail/FAQ#smtpssl
+                    props.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
             	}
 				props.put("mail.smtp.socketFactory.fallback", "false");
 			}
+			if(useTls){
+                /* This allows the user to override settings by setting system properties and
+            	 * also allows us to use the default STARTTLS port, 587, if no port is already set.
+            	 * Only the properties included below are required to use STARTTLS and they are
+            	 * not expected to be enabled simultaneously with SSL (it will actually throw a
+            	 * "javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?"
+            	 * if SMTP server expects only TLS).
+            	 */
+                if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
+                    String port = smtpPort==null?"587":smtpPort;
+                    props.put(SMTP_PORT_PROPERTY, port);
+                    props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
+                }
+                props.put("mail.smtp.starttls.enable", "true");
+                props.put("mail.smtp.starttls.required", "true");
+            }
             if(smtpAuthUserName!=null)
                 props.put("mail.smtp.auth","true");
 
@@ -395,6 +423,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
+            // TODO(alfabravoteam): try-with-resources for BulkChange instance? (JENIINS-TODO)
             BulkChange b = new BulkChange(this);
             // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
             // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
@@ -493,6 +522,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         	return useSsl;
         }
 
+        public boolean getUseTls() {
+            return useTls;
+        }
+
         public String getSmtpPort() {
         	return smtpPort;
         }
@@ -538,6 +571,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @DataBoundSetter
         public void setUseSsl(boolean useSsl) {
             this.useSsl = useSsl;
+            save();
+        }
+
+        @DataBoundSetter
+        public void setUseTls(boolean useTls) {
+            this.useTls = useTls;
             save();
         }
 
@@ -635,6 +674,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @param username plaintext username for SMTP authentication
          * @param password secret password for SMTP authentication
          * @param useSsl if set to {@code true} SSL is used
+         * @param useTls if set to {@code true} TLS is used
          * @param smtpPort port to use for SMTP transfer
          * @param charset charset of the underlying MIME-mail message
          * @param sendTestMailTo mail address to send test mail to
@@ -644,7 +684,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public FormValidation doSendTestMail(
                 @QueryParameter String smtpHost, @QueryParameter String adminAddress, @QueryParameter boolean authentication,
                 @QueryParameter String username, @QueryParameter Secret password,
-                @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
+                @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
                 // TODO 1.590+ Jenkins.getActiveInstance
@@ -660,7 +700,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     password = null;
                 }
                 
-                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, username, password));
+                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
@@ -692,6 +732,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private final String emailAddress;
 
+        @DataBoundConstructor
         public UserProperty(String emailAddress) {
             this.emailAddress = emailAddress;
         }
@@ -714,7 +755,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             // try the inference logic
             return MailAddressResolver.resolveFast(user);
         }
-        
+
+        @CheckForNull
+        public String getEmailAddress() {
+            return Util.fixEmptyAndTrim(emailAddress);
+        }
+
         /**
          * Gets an email address, which have been explicitly configured on the
          * user's configuration page.
@@ -738,6 +784,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Extension
+        @Symbol("mailer")
         public static final class DescriptorImpl extends UserPropertyDescriptor {
             public String getDisplayName() {
                 return Messages.Mailer_UserProperty_DisplayName();

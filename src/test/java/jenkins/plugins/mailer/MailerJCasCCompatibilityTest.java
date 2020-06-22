@@ -21,6 +21,7 @@ public class MailerJCasCCompatibilityTest extends RoundTripAbstractTest {
         assertEquals(String.format("Wrong SMTP host. Expected %s but received %s", "smtp.acme.com", descriptor.getSmtpHost()), "smtp.acme.com", descriptor.getSmtpHost());
         assertEquals(String.format("Wrong SMTP port. Expected %s but received %s", "808080", descriptor.getSmtpPort()), "808080", descriptor.getSmtpPort());
         assertTrue("SSL should be used", descriptor.getUseSsl());
+        assertTrue("TLS should be used", descriptor.getUseTls());
     }
 
     @Override
