@@ -408,8 +408,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         private static Authenticator getAuthenticator(final String smtpAuthUserName, final String smtpAuthPassword) {
-            if(smtpAuthUserName==null)
+            if(smtpAuthUserName == null) {
             	return null;
+            }
             return new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
