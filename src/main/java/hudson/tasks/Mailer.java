@@ -371,6 +371,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             		props.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
             	}
 				props.put("mail.smtp.socketFactory.fallback", "false");
+            	if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
+                    props.put("mail.smtp.ssl.checkserveridentity", "true");
+                }
 			}
             if(smtpAuthUserName!=null)
                 props.put("mail.smtp.auth","true");
