@@ -105,7 +105,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public boolean dontNotifyEveryUnstableBuild;
 
     public boolean isNotifyEveryUnstableBuild() {
-        return !dontNotifyEveryUnstableBuild;
+        return !dontNotifyEveryUnstableBuild
     }
 
     /**
