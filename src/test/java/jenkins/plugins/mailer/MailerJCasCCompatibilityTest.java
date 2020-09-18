@@ -14,7 +14,7 @@ public class MailerJCasCCompatibilityTest extends RoundTripAbstractTest {
     protected void assertConfiguredAsExpected(RestartableJenkinsRule restartableJenkinsRule, String s) {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
         assertTrue("Mailer can not be found", descriptor != null);
-        assertEquals(String.format("Wrong authentication. Username expected %s but received %s", "fakeuser", descriptor.getAuthentication().getUsername()), "fakeuser", descriptor.getAuthentication().getUsername());
+        assertEquals(String.format("Wrong authentication. Credential ID expected %s but received %s", "foo", descriptor.getAuthentication().getCredentialsId()), "foo", descriptor.getAuthentication().getCredentialsId());
         assertEquals(String.format("Wrong charset. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
         assertEquals(String.format("Wrong default suffix. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
         assertEquals(String.format("Wrong ReplayTo address. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()), "noreplay@mydomain.com", descriptor.getReplyToAddress());
@@ -26,6 +26,6 @@ public class MailerJCasCCompatibilityTest extends RoundTripAbstractTest {
 
     @Override
     protected String stringInLogExpected() {
-        return "Setting class hudson.tasks.SMTPAuthentication.username = fakeuser";
+        return "Setting class hudson.tasks.SMTPAuthentication.credentialsId = foo";
     }
 }

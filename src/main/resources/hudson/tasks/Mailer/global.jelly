@@ -55,7 +55,7 @@ THE SOFTWARE.
       <f:entry title="${%Test e-mail recipient}">
           <f:textbox name="sendTestMailTo"/>
       </f:entry>
-      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,username,password,useSsl,useTls,smtpPort,charset" />
+      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,credentialsId,useSsl,useTls,smtpPort,charset" />
     </f:optionalBlock>
   </f:section>
 </j:jelly>

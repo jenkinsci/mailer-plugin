@@ -24,6 +24,9 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static hudson.Util.fixEmptyAndTrim;
 
@@ -36,6 +39,7 @@ import hudson.Launcher;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
+import hudson.security.ACL;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
@@ -51,7 +55,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -60,6 +66,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -265,8 +272,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         private transient String smtpAuthUsername;
 
-        @Deprecated
         /** @deprecated as of 1.23, use {@link #authentication} */
+        @Deprecated
         private transient Secret smtpAuthPassword;
 
         private SMTPAuthentication authentication;
@@ -349,14 +356,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @return mail session based on the underlying session parameters.
          */
         public Session createSession() {
-            return createSession(smtpHost,smtpPort,useSsl,useTls,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
+            String credentialsId = Optional.ofNullable(authentication).map(auth -> auth.getCredentialsId()).orElse(null);
+            return createSession(smtpHost,smtpPort,useSsl,useTls,credentialsId);
         }
-        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
+
+        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, @Nullable String credentialsId) {
             final String SMTP_PORT_PROPERTY = "mail.smtp.port";
             final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
 
             smtpPort = fixEmptyAndTrim(smtpPort);
-            smtpAuthUserName = fixEmptyAndTrim(smtpAuthUserName);
 
             Properties props = new Properties(System.getProperties());
             if(fixEmptyAndTrim(smtpHost)!=null)
@@ -403,24 +411,22 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 props.put("mail.smtp.starttls.enable", "true");
                 props.put("mail.smtp.starttls.required", "true");
             }
-            if(smtpAuthUserName!=null)
-                props.put("mail.smtp.auth","true");
+
+            Optional<Authenticator> authenticator = Optional.ofNullable(credentialsId)
+                    .map(id -> CredentialsMatchers.firstOrNull(
+                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, (Item) null, ACL.SYSTEM, Collections.emptyList()),
+                            CredentialsMatchers.withId(id)))
+                    .map(creds -> new StandardUsernamePasswordCredentialsAuthenticator(creds));
+			if (authenticator.isPresent()) {
+			    LOGGER.fine(String.format("Sending mail with SMTP authentication (credential ID: %s)", credentialsId));
+                props.put("mail.smtp.auth", "true");
+            }
 
             // avoid hang by setting some timeout. 
             props.put("mail.smtp.timeout","60000");
             props.put("mail.smtp.connectiontimeout","60000");
 
-            return Session.getInstance(props,getAuthenticator(smtpAuthUserName,Secret.toString(smtpAuthPassword)));
-        }
-
-        private static Authenticator getAuthenticator(final String smtpAuthUserName, final String smtpAuthPassword) {
-            if(smtpAuthUserName==null)    return null;
-            return new Authenticator() {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(smtpAuthUserName,smtpAuthPassword);
-                }
-            };
+            return Session.getInstance(props, authenticator.orElse(null));
         }
 
         @Override
@@ -494,31 +500,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         public String getUrl() {
             return getJenkinsLocationConfiguration().getUrl();
-        }
-
-        /**
-         * @deprecated as of 1.21
-         *      Use {@link #authentication}
-         */
-        @Deprecated
-        public String getSmtpAuthUserName() {
-            if (authentication == null) return null;
-            return authentication.getUsername();
-        }
-
-        /**
-         * @deprecated as of 1.21
-         *      Use {@link #authentication}
-         */
-        @Deprecated
-        public String getSmtpAuthPassword() {
-            if (authentication == null) return null;
-            return Secret.toString(authentication.getPassword());
-        }
-
-        public Secret getSmtpAuthPasswordSecret() {
-            if (authentication == null) return null;
-            return authentication.getPassword();
         }
 
         public boolean getUseSsl() {
@@ -609,19 +590,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return authentication;
         }
 
-        /**
-         * @deprecated as of 1.21
-         *      Use {@link #authentication}
-         */
-        @Deprecated
-        public void setSmtpAuth(String userName, String password) {
-            if (userName == null && password == null) {
-                this.authentication = null;
-            } else {
-                this.authentication = new SMTPAuthentication(userName, Secret.fromString(password));
-            }
-        }
-
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             Mailer m = (Mailer)super.newInstance(req, formData);
@@ -674,8 +642,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @param smtpHost name of the SMTP server to use for mail sending
          * @param adminAddress Jenkins administrator mail address
          * @param authentication if set to {@code true} SMTP is used without authentication (username and password)
-         * @param username plaintext username for SMTP authentication
-         * @param password secret password for SMTP authentication
+         * @param credentialsId Jenkins Username/Password credential for SMTP authentication
          * @param useSsl if set to {@code true} SSL is used
          * @param useTls if set to {@code true} TLS is used
          * @param smtpPort port to use for SMTP transfer
@@ -686,7 +653,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @RequirePOST
         public FormValidation doSendTestMail(
                 @QueryParameter String smtpHost, @QueryParameter String adminAddress, @QueryParameter boolean authentication,
-                @QueryParameter String username, @QueryParameter Secret password,
+                @QueryParameter String credentialsId,
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
@@ -699,11 +666,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 jenkins.checkPermission(Jenkins.ADMINISTER);
                 
                 if (!authentication) {
-                    username = null;
-                    password = null;
+                    credentialsId = null;
                 }
                 
-                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
+                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, credentialsId));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));

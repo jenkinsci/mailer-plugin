@@ -23,6 +23,12 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.Launcher;
@@ -33,6 +39,7 @@ import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
@@ -80,9 +87,18 @@ public class MailerTest {
     private static final String AUTHOR2 = "author2@example.com";
     /** Change counter. */
     private static final AtomicLong COUNTER = new AtomicLong(0L);
+    public static final String CREDENTIALS_ID = "foo";
 
     @Rule
     public JenkinsRule rule = new JenkinsRule();
+
+    @Before
+    public void setupSmtpAuthenticationCredential() throws IOException {
+        CredentialsStore store = CredentialsProvider.lookupStores(rule).iterator().next();
+        StandardUsernamePasswordCredentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, CREDENTIALS_ID, "Description", "user", "pass");
+        store.addCredentials(Domain.global(), credentials);
+        store.save();
+    }
 
     private static Mailbox getMailbox(String recipient) throws Exception {
         return Mailbox.get(new InternetAddress(recipient));
@@ -142,7 +158,7 @@ public class MailerTest {
         d.setSmtpHost("smtp.host");
         d.setSmtpPort("1025");
         d.setUseSsl(true);
-        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setAuthentication(new SMTPAuthentication(CREDENTIALS_ID));
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
@@ -152,8 +168,7 @@ public class MailerTest {
         assertEquals("1025",d.getSmtpPort());
         assertEquals(true,d.getUseSsl());
         SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user",authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals(CREDENTIALS_ID,authentication.getCredentialsId());
 
         d.setUseSsl(false);
         d.setAuthentication(null);
@@ -171,8 +186,7 @@ public class MailerTest {
         form.getInputByName("_.smtpHost").setValueAttribute("acme.com");
         form.getInputByName("_.defaultSuffix").setValueAttribute("@acme.com");
         form.getInputByName("_.authentication").setChecked(true);
-        form.getInputByName("_.username").setValueAttribute("user");
-        form.getInputByName("_.password").setValueAttribute("pass");
+        form.getSelectByName("_.credentialsId").setSelectedAttribute(CREDENTIALS_ID, true);
 
         rule.submit(form);
 
@@ -181,8 +195,7 @@ public class MailerTest {
         assertEquals("@acme.com", d.getDefaultSuffix());
         SMTPAuthentication auth = d.getAuthentication();
         assertNotNull(auth);
-        assertEquals("user", auth.getUsername());
-        assertEquals("pass", auth.getPassword().getPlainText());
+        assertEquals(CREDENTIALS_ID, auth.getCredentialsId());
 
         cp = webClient.goTo("configure");
         form = cp.getFormByName("config");
@@ -334,7 +347,7 @@ public class MailerTest {
     public void testMigrateOldData() {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
         assertTrue("Mailer can not be found", descriptor != null);
-        assertEquals(String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()), "olduser", descriptor.getAuthentication().getUsername());
+        assertEquals(String.format("Authentication did not migrate properly. Credentials ID expected %s but received %s", CREDENTIALS_ID, descriptor.getAuthentication().getCredentialsId()), CREDENTIALS_ID, descriptor.getAuthentication().getCredentialsId());
         assertEquals(String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
         assertEquals(String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
         assertEquals(String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()), "noreplay@mydomain.com", descriptor.getReplyToAddress());

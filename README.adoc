@@ -23,8 +23,7 @@ For example, if this field is set to `@acme.org`, then user foo will by default 
 
 There are some advanced options as well:
 
-* **Use SMTP Authentication**: check this option to use SMTP authentication when sending out e-mails. 
-If your environment requires the use of SMTP authentication, specify the user name and the password in the fields shown when this option is checked.
+* **Use SMTP Authentication**: this lets you specify a Jenkins Username/Password https://www.jenkins.io/doc/book/using/using-credentials/[credential] to use for SMTP authentication when sending e-mails.
 * **Use SSL**: Whether or not to use SSL for connecting to the SMTP server. 
 Defaults to port `465`. 
 Other advanced configurations can be done by setting system properties. See this document for possible values and effects.
