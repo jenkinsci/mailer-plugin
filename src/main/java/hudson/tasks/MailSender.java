@@ -466,12 +466,13 @@ public class MailSender {
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
             if (adrs != null) {
-                if (Jenkins.getActiveInstance().isUseSecurity()) {
+                if (Jenkins.get().isUseSecurity()) {
                     try {
                         Authentication auth = a.impersonate();
                         if (!build.getACL().hasPermission(auth, Item.READ)) {
                             if (SEND_TO_USERS_WITHOUT_READ) {
-                                listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs, build.getFullDisplayName()));
+                                listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs,
+                                                                                                           build.getFullDisplayName()));
                             } else {
                                 listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
                                 continue;

@@ -54,7 +54,8 @@ public class MailSenderTest {
         final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
         PowerMockito.when(jenkins.isUseSecurity()).thenReturn(false);
         PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getActiveInstance");
+        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getInstanceOrNull");
+        PowerMockito.doReturn(jenkins).when(Jenkins.class, "get");
 
         AbstractProject upstreamProject = mock(AbstractProject.class);
 
@@ -137,7 +138,8 @@ public class MailSenderTest {
         final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
         PowerMockito.when(jenkins.isUseSecurity()).thenReturn(true);
         PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getActiveInstance");
+        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getInstanceOrNull");
+        PowerMockito.doReturn(jenkins).when(Jenkins.class, "get");
         ACL acl = mock(ACL.class);
         User authorizedU = mock(User.class);
         when(authorizedU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("authorized@mycorp"));
