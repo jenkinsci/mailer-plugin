@@ -370,7 +370,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             	 * and thats done in mail sender, and it would be a bit of a hack to get it all to
             	 * coordinate, and we can make it work through setting mail.smtp properties.
             	 */
-            	if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY)==null) {
+            	if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
                     String port = smtpPort==null?"465":smtpPort;
                     props.put(SMTP_PORT_PROPERTY, port);
                     props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
