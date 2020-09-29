@@ -375,7 +375,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     props.put(SMTP_PORT_PROPERTY, port);
                     props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
             	}
-            	if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY)==null) {
+            	if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY) == null) {
                     props.put(SMTP_SSL_ENABLE_PROPERTY, "true");
                     props.put("mail.smtp.ssl.checkserveridentity", true);
             	}
