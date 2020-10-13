@@ -26,7 +26,7 @@ package hudson.tasks;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import static hudson.Util.fixEmptyAndTrim;
+import hudson.Util;
 
 import hudson.BulkChange;
 import hudson.EnvVars;
@@ -355,7 +355,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setReplyToAddress(String address) {
-            this.replyToAddress = Util.fixEmpty(address);
+            this.replyToAddress = Util.fixEmptyAndTrim(address);
             save();
         }
 
@@ -370,12 +370,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             final String SMTP_PORT_PROPERTY = "mail.smtp.port";
             final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
 
-            smtpPort = fixEmptyAndTrim(smtpPort);
-            smtpAuthUserName = fixEmptyAndTrim(smtpAuthUserName);
+            smtpHost = Util.fixEmptyAndTrim(smtpHost);
+            smtpPort = Util.fixEmptyAndTrim(smtpPort);
+            smtpAuthUserName = Util.fixEmptyAndTrim(smtpAuthUserName);
 
             Properties props = new Properties(System.getProperties());
-            if(fixEmptyAndTrim(smtpHost)!=null)
-                props.put("mail.smtp.host",smtpHost);
+            if(smtpHost!=null) {
+                props.put("mail.smtp.host", smtpHost);
+            }
             if (smtpPort!=null) {
                 props.put(SMTP_PORT_PROPERTY, smtpPort);
             }
@@ -582,7 +584,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
-            this.smtpHost = nullify(smtpHost);
+            this.smtpHost = Util.fixEmptyAndTrim(smtpHost);
             save();
         }
 
@@ -600,7 +602,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
-            this.smtpPort = smtpPort;
+            this.smtpPort = Util.fixEmptyAndTrim(smtpPort);
             save();
         }
 
@@ -609,7 +611,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if (charset == null || charset.length() == 0) {
                 charset = "UTF-8";
             }
-            this.charset = charset;
+            this.charset = Util.fixEmptyAndTrim(charset);
             save();
         }
 
@@ -668,7 +670,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         public FormValidation doCheckSmtpServer(@QueryParameter String value) {
             try {
-                if (fixEmptyAndTrim(value)!=null)
+                if (Util.fixEmptyAndTrim(value)!=null)
                     InetAddress.getByName(value);
                 return FormValidation.ok();
             } catch (UnknownHostException e) {
@@ -677,7 +679,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
-            if (value.matches("@[A-Za-z0-9.\\-]+") || fixEmptyAndTrim(value)==null)
+            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value)==null)
                 return FormValidation.ok();
             else
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
