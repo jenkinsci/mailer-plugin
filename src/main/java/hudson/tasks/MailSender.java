@@ -35,6 +35,7 @@ import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import org.acegisecurity.Authentication;
+import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
@@ -456,6 +457,8 @@ public class MailSender {
     static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
     /** If set, send to unknown users. */
     static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
+    /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception. */
+    static /* not final */ boolean SEND_TO_UNAUTHORIZED_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNAUTHORIZED_USERS");
 
     @Nonnull
     String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
@@ -483,6 +486,13 @@ public class MailSender {
                             listener.getLogger().println(Messages.MailSender_warning_unknown_user(adrs));
                         } else {
                             listener.getLogger().println(Messages.MailSender_unknown_user(adrs));
+                            continue;
+                        }
+                    } catch (AuthenticationException e) {
+                        if (SEND_TO_UNAUTHORIZED_USERS) {
+                            listener.getLogger().println(Messages.MailSender_warning_unauthorized_user(adrs));
+                        } else {
+                            listener.getLogger().println(Messages.MailSender_unauthorized_user(adrs));
                             continue;
                         }
                     }
