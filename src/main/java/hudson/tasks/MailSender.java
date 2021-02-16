@@ -492,7 +492,7 @@ public class MailSender {
                         if (SEND_TO_UNAUTHORIZED_USERS) {
                             listener.getLogger().println(Messages.MailSender_warning_unauthorized_user(adrs));
                         } else {
-                            listener.getLogger().println(Messages.MailSender_unauthorized_user(adrs));
+                            listener.getLogger().println(Messages.MailSender_unauthorized_user(adrs, e.getMessage()));
                             continue;
                         }
                     }
