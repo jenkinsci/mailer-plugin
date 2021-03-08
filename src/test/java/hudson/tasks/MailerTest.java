@@ -113,6 +113,86 @@ public class MailerTest {
         return new TestProject(m);
     }
 
+    @Test
+    public void testFixEmptyAndTrimOne() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("smtp.host");
+        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setSmtpPort("1025");
+        d.setReplyToAddress("foo@bar.com");
+        d.setCharset("UTF-8");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimTwo() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("   smtp.host   ");
+        d.setAuthentication(new SMTPAuthentication("   user   ", Secret.fromString("pass")));
+        d.setSmtpPort("   1025   ");
+        d.setReplyToAddress("   foo@bar.com   ");
+        d.setCharset("   UTF-8   ");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimThree() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("");
+        d.setAuthentication(new SMTPAuthentication("", Secret.fromString("pass")));
+        d.setSmtpPort("");
+        d.setReplyToAddress("");
+        d.setCharset("");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimFour() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost(null);
+        d.setAuthentication(new SMTPAuthentication(null, Secret.fromString("pass")));
+        d.setSmtpPort(null);
+        d.setReplyToAddress(null);
+        d.setCharset(null);
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
     @Bug(1566)
     @Test
     public void testSenderAddress() throws Exception {

@@ -5,6 +5,7 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.Secret;
 import org.kohsuke.stapler.DataBoundConstructor;
+import hudson.Util;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -17,7 +18,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
 
     @DataBoundConstructor
     public SMTPAuthentication(String username, Secret password) {
-        this.username = username;
+        this.username = Util.fixEmptyAndTrim(username);
         this.password = password;
     }
 
