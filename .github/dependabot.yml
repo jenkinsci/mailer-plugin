@@ -5,13 +5,3 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: io.jenkins.plugins*
-    versions:
-    - ">= 0"
-  - dependency-name: org.jenkins-ci.main:jenkins-core
-    versions:
-    - ">= 0"
-  - dependency-name: org.jenkins-ci.plugins*
-    versions:
-    - ">= 0"
