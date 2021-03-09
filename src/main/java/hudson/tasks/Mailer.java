@@ -237,11 +237,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public static DescriptorImpl DESCRIPTOR;
 
     public static DescriptorImpl descriptor() {
-        final Jenkins jenkins = Jenkins.getInstanceOrNull();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins instance is not ready");
-        }
-        return jenkins.getDescriptorByType(Mailer.DescriptorImpl.class);
+        return Jenkins.get().getDescriptorByType(Mailer.DescriptorImpl.class);
     }
 
     @Extension
