@@ -216,7 +216,7 @@ public class MimeMessageBuilder {
     }
 
     private void setJenkinsInstanceIdent(MimeMessage msg) throws MessagingException {
-        if (Jenkins.getInstance() != null) {
+        if (Jenkins.get() != null) {
             String encodedIdentity;
             try {
                 RSAPublicKey publicKey = InstanceIdentity.get().getPublic();

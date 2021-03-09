@@ -368,13 +368,7 @@ public class MailSender {
             if (build != null && address.startsWith("upstream-individuals:")) {
                 // people who made a change in the upstream
                 String projectName = address.substring("upstream-individuals:".length());
-                // TODO 1.590+ Jenkins.getActiveInstance
-                final Jenkins jenkins = Jenkins.getInstance();
-                if (jenkins == null) {
-                    listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
-                    continue;
-                }
-                final AbstractProject up = jenkins.getItem(projectName, run.getParent(), AbstractProject.class);
+                final AbstractProject up = Jenkins.get().getItem(projectName, run.getParent(), AbstractProject.class);
                 if(up==null) {
                     listener.getLogger().println("No such project exist: "+projectName);
                     continue;
