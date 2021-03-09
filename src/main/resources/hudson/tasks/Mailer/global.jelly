@@ -42,7 +42,7 @@ THE SOFTWARE.
         <f:checkbox />
       </f:entry>
       <f:entry title="${%SMTP Port}" field="smtpPort">
-        <f:textbox />
+        <f:number />
       </f:entry>
       <f:entry title="${%Reply-To Address}" field="replyToAddress">
         <f:textbox />

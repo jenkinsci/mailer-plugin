@@ -25,14 +25,21 @@ package hudson.tasks;
 
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.*;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
+import hudson.security.Permission;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.ReflectionUtils;
 import hudson.util.Secret;
+import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
@@ -42,6 +49,7 @@ import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -50,11 +58,17 @@ import org.jvnet.mock_javamail.Mailbox;
 import javax.mail.Address;
 import javax.mail.internet.InternetAddress;
 
+import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -97,6 +111,86 @@ public class MailerTest {
     private TestProject create(boolean notifyEveryUnstableBuild, boolean sendToIndividuals) throws Exception {
         Mailer m = new Mailer(RECIPIENT, notifyEveryUnstableBuild, sendToIndividuals);
         return new TestProject(m);
+    }
+
+    @Test
+    public void testFixEmptyAndTrimOne() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("smtp.host");
+        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setSmtpPort("1025");
+        d.setReplyToAddress("foo@bar.com");
+        d.setCharset("UTF-8");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimTwo() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("   smtp.host   ");
+        d.setAuthentication(new SMTPAuthentication("   user   ", Secret.fromString("pass")));
+        d.setSmtpPort("   1025   ");
+        d.setReplyToAddress("   foo@bar.com   ");
+        d.setCharset("   UTF-8   ");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimThree() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("");
+        d.setAuthentication(new SMTPAuthentication("", Secret.fromString("pass")));
+        d.setSmtpPort("");
+        d.setReplyToAddress("");
+        d.setCharset("");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimFour() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost(null);
+        d.setAuthentication(new SMTPAuthentication(null, Secret.fromString("pass")));
+        d.setSmtpPort(null);
+        d.setReplyToAddress(null);
+        d.setCharset(null);
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
     }
 
     @Bug(1566)
@@ -341,6 +435,47 @@ public class MailerTest {
         assertEquals(String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()), "old.data.smtp.host", descriptor.getSmtpHost());
         assertEquals(String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()), "808080", descriptor.getSmtpPort());
         assertTrue("SSL should be used", descriptor.getUseSsl());
+    }
+
+    @Test
+    public void managePermissionShouldAccessGlobalConfig() {
+        Permission jenkinsManage;
+        try {
+            jenkinsManage = getJenkinsManage();
+        } catch (Exception e) {
+            Assume.assumeTrue("Jenkins baseline is too old for this test (requires Jenkins.MANAGE)", false);
+            return;
+        }
+        final String USER = "user";
+        final String MANAGER = "manager";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                                                   // Read access
+                                                   .grant(Jenkins.READ).everywhere().to(USER)
+
+                                                   // Read and Manage
+                                                   .grant(Jenkins.READ).everywhere().to(MANAGER)
+                                                   .grant(jenkinsManage).everywhere().to(MANAGER)
+        );
+
+        try (ACLContext c = ACL.as(User.getById(USER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            MatcherAssert.assertThat("Global configuration should not be accessible to READ users", descriptors, is(empty()));
+        }
+
+        try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            Optional<Descriptor> found =
+                    descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
+            assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
+        }
+    }
+
+    // TODO: remove when Jenkins core baseline is 2.222+
+    private Permission getJenkinsManage() throws NoSuchMethodException, IllegalAccessException,
+                                                 InvocationTargetException {
+        // Jenkins.MANAGE is available starting from Jenkins 2.222 (https://jenkins.io/changelog/#v2.222). See JEP-223 for more info
+        return (Permission) ReflectionUtils.getPublicProperty(Jenkins.get(), "MANAGE");
     }
 
     private final class TestProject {

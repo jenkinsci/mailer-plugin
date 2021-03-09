@@ -24,8 +24,9 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import static hudson.Util.fixEmptyAndTrim;
+import hudson.Util;
 
 import hudson.BulkChange;
 import hudson.EnvVars;
@@ -37,7 +38,9 @@ import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
+import hudson.util.ReflectionUtils;
 import hudson.util.Secret;
 import hudson.util.XStream2;
 
@@ -49,6 +52,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -70,6 +74,7 @@ import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -324,6 +329,23 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             DESCRIPTOR = this;
         }
 
+        @NonNull
+        // TODO: Add @Override when Jenkins core baseline is 2.222+
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return getJenkinsManageOrAdmin();
+        }
+
+        // TODO: remove when Jenkins core baseline is 2.222+
+        public static Permission getJenkinsManageOrAdmin() {
+            Permission manage;
+            try { // Manage is available starting from Jenkins 2.222 (https://jenkins.io/changelog/#v2.222). See JEP-223 for more info
+                manage = (Permission) ReflectionUtils.getPublicProperty(Jenkins.get(), "MANAGE");
+            } catch (IllegalArgumentException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+                manage = Jenkins.ADMINISTER;
+            }
+            return manage;
+        }
+
         public String getDisplayName() {
             return Messages.Mailer_DisplayName();
         }
@@ -338,7 +360,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setReplyToAddress(String address) {
-            this.replyToAddress = Util.fixEmpty(address);
+            this.replyToAddress = Util.fixEmptyAndTrim(address);
             save();
         }
 
@@ -354,12 +376,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
             final String SMTP_SSL_ENABLE_PROPERTY = "mail.smtp.ssl.enable";
 
-            smtpPort = fixEmptyAndTrim(smtpPort);
-            smtpAuthUserName = fixEmptyAndTrim(smtpAuthUserName);
+            smtpHost = Util.fixEmptyAndTrim(smtpHost);
+            smtpPort = Util.fixEmptyAndTrim(smtpPort);
+            smtpAuthUserName = Util.fixEmptyAndTrim(smtpAuthUserName);
 
             Properties props = new Properties(System.getProperties());
-            if(fixEmptyAndTrim(smtpHost)!=null)
-                props.put("mail.smtp.host",smtpHost);
+            if(smtpHost!=null) {
+                props.put("mail.smtp.host", smtpHost);
+            }
             if (smtpPort!=null) {
                 props.put(SMTP_PORT_PROPERTY, smtpPort);
             }
@@ -380,6 +404,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     props.put("mail.smtp.ssl.checkserveridentity", true);
             	}
 				props.put("mail.smtp.socketFactory.fallback", "false");
+            	if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
+                    props.put("mail.smtp.ssl.checkserveridentity", "true");
+                }
 			}
 			if(useTls){
                 /* This allows the user to override settings by setting system properties and
@@ -562,7 +589,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
-            this.smtpHost = nullify(smtpHost);
+            this.smtpHost = Util.fixEmptyAndTrim(smtpHost);
             save();
         }
 
@@ -580,7 +607,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
-            this.smtpPort = smtpPort;
+            this.smtpPort = Util.fixEmptyAndTrim(smtpPort);
             save();
         }
 
@@ -589,7 +616,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if (charset == null || charset.length() == 0) {
                 charset = "UTF-8";
             }
-            this.charset = charset;
+            this.charset = Util.fixEmptyAndTrim(charset);
             save();
         }
 
@@ -648,7 +675,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         public FormValidation doCheckSmtpServer(@QueryParameter String value) {
             try {
-                if (fixEmptyAndTrim(value)!=null)
+                if (Util.fixEmptyAndTrim(value)!=null)
                     InetAddress.getByName(value);
                 return FormValidation.ok();
             } catch (UnknownHostException e) {
@@ -657,7 +684,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
-            if (value.matches("@[A-Za-z0-9.\\-]+") || fixEmptyAndTrim(value)==null)
+            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value)==null)
                 return FormValidation.ok();
             else
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
@@ -685,13 +712,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
-                final Jenkins jenkins = Jenkins.getInstanceOrNull();
-                if (jenkins == null) {
-                    throw new IOException("Jenkins instance is not ready");
-                }
-
-                jenkins.checkPermission(Jenkins.ADMINISTER);
-                
+                Jenkins.get().checkPermission(DescriptorImpl.getJenkinsManageOrAdmin());
                 if (!authentication) {
                     username = null;
                     password = null;
@@ -699,7 +720,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 
                 MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
-                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
+                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), Jenkins.get().getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
                 if (StringUtils.isNotBlank(replyToAddress)) {
                     msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
