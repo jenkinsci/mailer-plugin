@@ -369,7 +369,7 @@ public class MailSender {
                 // people who made a change in the upstream
                 String projectName = address.substring("upstream-individuals:".length());
                 // TODO 1.590+ Jenkins.getActiveInstance
-                final Jenkins jenkins = Jenkins.getInstance();
+                final Jenkins jenkins = Jenkins.getInstanceOrNull();
                 if (jenkins == null) {
                     listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
                     continue;
