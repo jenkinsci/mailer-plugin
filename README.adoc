@@ -29,10 +29,10 @@ If your environment requires the use of SMTP authentication, specify the user na
 Defaults to port `465`. 
 Other advanced configurations can be done by setting system properties. See this document for possible values and effects.
 * **Use TLS**: Whether or not to use TLS for connecting to the SMTP server.
-Defaults to port `465`.
+Defaults to port `587`.
 Other advanced configurations can be done by setting system properties. See this document for possible values and effects.
 * **SMTP Port**: Port number for the mail server. 
-Leave it empty to use the default port for the protocol (`465` if using SSL, `25` if not).
+Leave it empty to use the default port for the protocol (`587` if using TLS, `465` if using SSL, `25` if not using encryption).
 * **Reply-To Address**: Address to include in the `Reply-To` header.
 Up to version `1.16`, only one address is allowed, starting in version `1.17` more than one can be used.
 * **Charset**: character set to use to construct the message.

@@ -427,7 +427,7 @@ public class MailerTest {
     @LocalData
     public void testMigrateOldData() {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
-        assertTrue("Mailer can not be found", descriptor != null);
+        assertNotNull("Mailer can not be found", descriptor);
         assertEquals(String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()), "olduser", descriptor.getAuthentication().getUsername());
         assertEquals(String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
         assertEquals(String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
