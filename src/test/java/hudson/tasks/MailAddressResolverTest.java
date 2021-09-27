@@ -25,6 +25,8 @@ package hudson.tasks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -40,19 +42,12 @@ import jenkins.model.Jenkins;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Bug;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.MockedStatic;
 
 /**
  * @author Kohsuke Kawaguchi, ogondza
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest( {MailAddressResolver.class, Mailer.class, Mailer.DescriptorImpl.class})
-@PowerMockIgnore({"javax.security.*", "javax.xml.*"})
 public class MailAddressResolverTest {
 
     private User user;
@@ -62,44 +57,51 @@ public class MailAddressResolverTest {
     @Before
     public void setUp() throws Exception {
 
-        jenkins = PowerMockito.mock(Hudson.class);
+        jenkins = mock(Hudson.class);
 
-        user = PowerMockito.mock(User.class);
+        user = mock(User.class);
         when(user.getFullName()).thenReturn("Full name");
         when(user.getId()).thenReturn("user_id");
 
-        PowerMockito.spy(Mailer.class);
-        descriptor = PowerMockito.mock(Mailer.DescriptorImpl.class);
-        PowerMockito.doReturn(descriptor).when(Mailer.class, "descriptor");
+        descriptor = mock(Mailer.DescriptorImpl.class);
     }
 
     @Test
     public void nameAlreadyIsAnAddress() throws Exception {
 
+      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
         validateUserPropertyAddress("user@example.com", "user@example.com", "");
+      }
     }
 
     @Test
     public void nameContainsAddress() throws Exception {
 
+      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
         validateUserPropertyAddress("user@example.com", "User Name <user@example.com>", "");
+      }
     }
 
     @Bug(5164)
     @Test
     public void test5164() throws Exception {
 
+      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
         validateUserPropertyAddress("user@example.com", "DOMAIN\\user", "@example.com");
+      }
     }
 
     private void validateUserPropertyAddress(
             String address, String username, String suffix
     ) throws Exception {
 
-        PowerMockito.when(descriptor.getDefaultSuffix()).thenReturn(suffix);
+        when(descriptor.getDefaultSuffix()).thenReturn(suffix);
 
-        PowerMockito.when(user.getFullName()).thenReturn(username);
-        PowerMockito.when(user.getId()).thenReturn(username.replace('\\','_'));
+        when(user.getFullName()).thenReturn(username);
+        when(user.getId()).thenReturn(username.replace('\\','_'));
 
         String a = new UserPropertyMock(user, null).getConfiguredAddress();
         assertEquals(address, a);
@@ -115,31 +117,37 @@ public class MailAddressResolverTest {
 
     @Test
     public void doNotResolveWhenUsingFastResolution() throws Exception {
+      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class);
+           MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
+        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
 
         final MailAddressResolver resolver = mockResolver();
 
-        configure(resolver);
+        configure(mockedExtensionList, resolver);
 
         final String address = MailAddressResolver.resolveFast(user);
 
         verify(resolver, never()).findMailAddressFor(user);
 
         assertNull(address);
+      }
     }
 
     @Test
     public void doResolveWhenNotUsingFastResolution() throws Exception {
 
+      try (MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
         final MailAddressResolver resolver = mockResolver();
-        PowerMockito.when(resolver.findMailAddressFor(user)).thenReturn("a@b.c");
+        when(resolver.findMailAddressFor(user)).thenReturn("a@b.c");
 
-        configure(resolver);
+        configure(mockedExtensionList, resolver);
 
         final String address = MailAddressResolver.resolve(user);
 
         verify(resolver, times(1)).findMailAddressFor(user);
 
         assertEquals("a@b.c", address);
+      }
     }
 
     @Test
@@ -155,16 +163,11 @@ public class MailAddressResolverTest {
     
     private MailAddressResolver mockResolver() {
 
-        return PowerMockito.mock(MailAddressResolver.class);
+        return mock(MailAddressResolver.class);
     }
 
-    private void configure(final MailAddressResolver... resolvers) throws Exception {
-
-        PowerMockito.spy(MailAddressResolver.class);
-
-        PowerMockito.doReturn(new MockExtensionList(jenkins, resolvers))
-            .when(MailAddressResolver.class, "all")
-        ;
+    private void configure(final MockedStatic<ExtensionList> mockedExtensionList, final MailAddressResolver... resolvers) {
+        mockedExtensionList.when(() -> ExtensionList.lookup(MailAddressResolver.class)).thenReturn(new MockExtensionList(jenkins, resolvers));
     }
 
     private static class MockExtensionList extends ExtensionList<MailAddressResolver> {
