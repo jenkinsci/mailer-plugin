@@ -20,15 +20,16 @@ import jenkins.plugins.mailer.tasks.i18n.Messages;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
-import static org.mockito.Mockito.*;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+import org.mockito.MockedStatic;
 
 /**
  * Test case for the {@link MailSender}
@@ -37,9 +38,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
  * 
  * @author Christoph Kutzinski
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(Jenkins.class)
-@PowerMockIgnore({"javax.security.auth.Subject", "javax.security.*", "javax.xml.*"}) // otherwise as in https://groups.google.com/d/msg/jenkinsci-dev/n5sdCxrccSk/7K4yTTc7XG4J mock(ACL.class) in Java 8 fails with: java.lang.LinkageError: loader constraint violation in interface itable initialization: when resolving method "org.acegisecurity.Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863.implies(Ljavax/security/auth/Subject;)Z" the class loader (instance of org/powermock/core/classloader/MockClassLoader) of the current class, org/acegisecurity/Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863, and the class loader (instance of <bootloader>) for interface java/security/Principal have different Class objects for the type javax/security/auth/Subject used in the signature
 @SuppressWarnings("rawtypes")
 public class MailSenderTest {
     
@@ -51,11 +49,10 @@ public class MailSenderTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testIncludeUpstreamCulprits() throws Exception {
-        final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
-        PowerMockito.when(jenkins.isUseSecurity()).thenReturn(false);
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getInstanceOrNull");
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "get");
+      final Jenkins jenkins = mock(Jenkins.class);
+      when(jenkins.isUseSecurity()).thenReturn(false);
+      try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {
+        mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
 
         AbstractProject upstreamProject = mock(AbstractProject.class);
 
@@ -112,6 +109,7 @@ public class MailSenderTest {
         assertFalse(emailList.contains("this.one.should.not.be.included@example.com"));
         assertTrue(emailList.contains("this.one.must.be.included@example.com"));
         assertTrue(emailList.contains("this.one.must.be.included.too@example.com"));
+      }
     }
     
     /**
@@ -135,11 +133,10 @@ public class MailSenderTest {
 
     @Issue("SECURITY-372")
     @Test public void forbiddenMail() throws Exception {
-        final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
-        PowerMockito.when(jenkins.isUseSecurity()).thenReturn(true);
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getInstanceOrNull");
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "get");
+      final Jenkins jenkins = mock(Jenkins.class);
+      when(jenkins.isUseSecurity()).thenReturn(true);
+      try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {
+        mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
         ACL acl = mock(ACL.class);
         User authorizedU = mock(User.class);
         when(authorizedU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("authorized@mycorp"));
@@ -186,6 +183,7 @@ public class MailSenderTest {
         } finally {
             MailSender.SEND_TO_USERS_WITHOUT_READ = false;
         }
+      }
     }
 
 }
