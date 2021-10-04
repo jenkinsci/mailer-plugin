@@ -24,7 +24,6 @@
  */
 package jenkins.plugins.mailer.tasks;
 
-import com.google.common.collect.Lists;
 import hudson.model.TaskListener;
 import hudson.remoting.Base64;
 import hudson.tasks.Mailer;
@@ -53,6 +52,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -284,7 +284,7 @@ public class MimeMessageBuilder {
     }
 
     private List<InternetAddress> toNormalizedAddresses(String addresses) throws UnsupportedEncodingException {
-        final List<InternetAddress> list = Lists.newLinkedList();
+        final List<InternetAddress> list = new LinkedList<>();
         if (StringUtils.isNotBlank(addresses)) {
             StringTokenizer tokens = new StringTokenizer(addresses, " \t\n\r\f,");
             while (tokens.hasMoreTokens()) {

@@ -1,6 +1,5 @@
 package hudson.tasks;
 
-import com.google.common.collect.Sets;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -14,6 +13,7 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
@@ -75,17 +75,17 @@ public class MailSenderTest {
 
         User user1 = mock(User.class);
         when(user1.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.should.not.be.included@example.com"));
-        Set<User> badGuys1 = Sets.newHashSet(user1);
+        Set<User> badGuys1 = Collections.singleton(user1);
         when(previousBuildUpstreamBuild.getCulprits()).thenReturn(badGuys1);
 
         User user2 = mock(User.class);
         when(user2.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.must.be.included@example.com"));
-        Set<User> badGuys2 = Sets.newHashSet(user2);
+        Set<User> badGuys2 = Collections.singleton(user2);
         when(upstreamBuildBetweenPreviousAndCurrent.getCulprits()).thenReturn(badGuys2);
 
         User user3 = mock(User.class);
         when(user3.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.must.be.included.too@example.com"));
-        Set<User> badGuys3 = Sets.newHashSet(user3);
+        Set<User> badGuys3 = Collections.singleton(user3);
         when(upstreamBuild.getCulprits()).thenReturn(badGuys3);
 
 
@@ -155,7 +155,7 @@ public class MailSenderTest {
         when(externalU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("someone@nowhere.net"));
         when(externalU.impersonate()).thenThrow(new UsernameNotFoundException(""));
         AbstractBuild<?, ?> build = mock(AbstractBuild.class);
-        when(build.getCulprits()).thenReturn(Sets.newLinkedHashSet(Arrays.asList(authorizedU, unauthorizedU, externalU)));
+        when(build.getCulprits()).thenReturn(new LinkedHashSet<>(Arrays.asList(authorizedU, unauthorizedU, externalU)));
         when(build.getACL()).thenReturn(acl);
         when(build.getFullDisplayName()).thenReturn("prj #1");
         StringWriter sw = new StringWriter();
