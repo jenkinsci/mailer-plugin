@@ -25,7 +25,6 @@
 package jenkins.plugins.mailer.tasks;
 
 import hudson.model.TaskListener;
-import hudson.remoting.Base64;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -49,6 +48,7 @@ import javax.mail.internet.MimeUtility;
 
 import java.io.UnsupportedEncodingException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
@@ -220,7 +220,7 @@ public class MimeMessageBuilder {
             String encodedIdentity;
             try {
                 RSAPublicKey publicKey = InstanceIdentity.get().getPublic();
-                encodedIdentity = Base64.encode(publicKey.getEncoded());
+                encodedIdentity = Base64.getEncoder().encodeToString(publicKey.getEncoded());
             } catch (Throwable t) {
                 // Ignore. Just don't add the identity header.
                  logError("Failed to set Jenkins Identity header on email.", t);
