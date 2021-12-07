@@ -30,6 +30,7 @@ import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
+import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
@@ -67,15 +68,16 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -468,6 +470,37 @@ public class MailerTest {
             Optional<Descriptor> found =
                     descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
             assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
+        }
+    }
+
+
+    @Test
+    @Issue("SECURITY-2163")
+    public void doCheckSmtpServerShouldThrowExceptionForUserWithoutManagePermissions() {
+        final String USER = "user";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ).everywhere().to(USER)
+        );
+        final String expectedErrorMessage = "hudson.security.AccessDeniedException2: user is missing the Overall/Administer permission";
+
+        try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
+            assertThrows(expectedErrorMessage, AccessDeniedException2.class,
+                    () -> Mailer.descriptor().doCheckSmtpHost("domain.com"));
+        }
+    }
+
+    @Test
+    @Issue("SECURITY-2163")
+    public void doCheckSmtpServerShouldNotThrowForUserWithManagePermissions() {
+        final String MANAGER = "manage";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
+        );
+
+        try (ACLContext ignored = ACL.as(User.getById(MANAGER, true))) {
+            Mailer.descriptor().doCheckSmtpHost("domain.com");
         }
     }
 
