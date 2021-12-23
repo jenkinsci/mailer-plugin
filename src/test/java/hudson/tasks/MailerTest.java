@@ -30,7 +30,6 @@ import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
-import hudson.security.AccessDeniedException2;
 import hudson.security.Permission;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
@@ -482,11 +481,12 @@ public class MailerTest {
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
                 .grant(Jenkins.READ).everywhere().to(USER)
         );
-        final String expectedErrorMessage = "hudson.security.AccessDeniedException2: user is missing the Overall/Administer permission";
+        final String expectedErrorMessage = "user is missing the Overall/Administer permission";
 
         try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
-            assertThrows(expectedErrorMessage, AccessDeniedException2.class,
+            RuntimeException runtimeException = assertThrows(expectedErrorMessage, RuntimeException.class,
                     () -> Mailer.descriptor().doCheckSmtpHost("domain.com"));
+            MatcherAssert.assertThat(runtimeException.getMessage(), containsString(expectedErrorMessage));
         }
     }
 
