@@ -54,7 +54,7 @@
           <groupId>org.hamcrest</groupId>
           <artifactId>hamcrest-core</artifactId>
         </exclusion>
-        <exclusion> <!-- TODO unwanted dep via plugin-util-api -->
+        <exclusion> <!-- TODO pending https://github.com/jenkinsci/plugin-util-api-plugin/releases/tag/v2.9.0 in bom -->
           <groupId>javax.annotation</groupId>
           <artifactId>javax.annotation-api</artifactId>
         </exclusion>
