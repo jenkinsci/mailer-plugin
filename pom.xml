@@ -9,10 +9,9 @@
   
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <name>Jenkins Mailer Plugin</name>
-  <description>This plugin allows you to configure email notifications for build results</description>
-  <url>https://github.com/jenkinsci/mailer-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   
   <licenses>
     <license>
@@ -22,10 +21,10 @@
     </license>
   </licenses>
   <properties>
-    <revision>1.35</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <jenkins.version>2.289.1</jenkins.version>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
   <dependencyManagement>
@@ -143,9 +142,9 @@
     </dependency>
   </dependencies>
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/mailer-plugin</url>
+    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
   <repositories>
