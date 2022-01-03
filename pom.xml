@@ -25,15 +25,15 @@
     <revision>1.35</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
-    <jenkins.version>2.235.5</jenkins.version>
+    <jenkins.version>2.289.1</jenkins.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.235.x</artifactId>
-        <version>918.vae501d2cdc99</version>
+        <artifactId>bom-2.289.x</artifactId>
+        <version>1075.v14bef33e5d7b</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -54,18 +54,15 @@
           <groupId>org.hamcrest</groupId>
           <artifactId>hamcrest-core</artifactId>
         </exclusion>
+        <exclusion> <!-- TODO pending https://github.com/jenkinsci/plugin-util-api-plugin/releases/tag/v2.9.0 in bom -->
+          <groupId>javax.annotation</groupId>
+          <artifactId>javax.annotation-api</artifactId>
+        </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>javax.mail</groupId>
-      <artifactId>mail</artifactId>
-      <version>1.4.7</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>instance-identity</artifactId>
-      <version>2.2</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -101,6 +98,12 @@
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion> <!-- Not even sure how this was possible to begin with? -->
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>mailer</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -157,7 +160,4 @@
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
-  <build>
-    <defaultGoal>clean hpi:run</defaultGoal>
-  </build>
 </project>

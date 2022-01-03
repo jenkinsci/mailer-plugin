@@ -33,7 +33,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -94,12 +94,12 @@ public class MimeMessageBuilder {
         }
     }
 
-    public MimeMessageBuilder setCharset(@Nonnull String charset) {
+    public MimeMessageBuilder setCharset(@NonNull String charset) {
         this.charset = charset;
         return this;
     }
 
-    public MimeMessageBuilder setMimeType(@Nonnull String mimeType) {
+    public MimeMessageBuilder setMimeType(@NonNull String mimeType) {
         this.mimeType = mimeType;
         return this;
     }
@@ -109,17 +109,17 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder setDefaultSuffix(@Nonnull String defaultSuffix) {
+    public MimeMessageBuilder setDefaultSuffix(@NonNull String defaultSuffix) {
         this.defaultSuffix = defaultSuffix;
         return this;
     }
 
-    public MimeMessageBuilder setFrom(@Nonnull String from) {
+    public MimeMessageBuilder setFrom(@NonNull String from) {
         this.from = from;
         return this;
     }
 
-    public MimeMessageBuilder setReplyTo(@Nonnull String replyTo) {
+    public MimeMessageBuilder setReplyTo(@NonNull String replyTo) {
         try {
             final List<InternetAddress> addresses = toNormalizedAddresses(replyTo);
             // Done after to leave the current value untouched if there is a parsing error.
@@ -131,7 +131,7 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder addReplyTo(@Nonnull String replyTo) {
+    public MimeMessageBuilder addReplyTo(@NonNull String replyTo) {
         try {
             this.replyTo.addAll(toNormalizedAddresses(replyTo));
         } catch(UnsupportedEncodingException e) {
@@ -141,12 +141,12 @@ public class MimeMessageBuilder {
     }
 
 
-    public MimeMessageBuilder setSubject(@Nonnull String subject) {
+    public MimeMessageBuilder setSubject(@NonNull String subject) {
         this.subject = subject;
         return this;
     }
 
-    public MimeMessageBuilder setBody(@Nonnull String body) {
+    public MimeMessageBuilder setBody(@NonNull String body) {
         this.body = body;
         return this;
     }
@@ -156,7 +156,7 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder addRecipients(@Nonnull String recipients) throws UnsupportedEncodingException {
+    public MimeMessageBuilder addRecipients(@NonNull String recipients) throws UnsupportedEncodingException {
         addRecipients(recipients, Message.RecipientType.TO);
         return this;
     }
@@ -168,7 +168,7 @@ public class MimeMessageBuilder {
      * @return the constructed message with the given recipients
      * @throws UnsupportedEncodingException in case of encoding problems
      */
-    public MimeMessageBuilder addRecipients(@Nonnull String recipients, @Nonnull Message.RecipientType recipientType) throws UnsupportedEncodingException {
+    public MimeMessageBuilder addRecipients(@NonNull String recipients, @NonNull Message.RecipientType recipientType) throws UnsupportedEncodingException {
         StringTokenizer tokens = new StringTokenizer(recipients, " \t\n\r\f,");
         while (tokens.hasMoreTokens()) {
             String addressToken = tokens.nextToken();
@@ -239,7 +239,7 @@ public class MimeMessageBuilder {
         return addresses;
     }
 
-    public static void setInReplyTo(@Nonnull MimeMessage msg, @Nonnull String inReplyTo) throws MessagingException {
+    public static void setInReplyTo(@NonNull MimeMessage msg, @NonNull String inReplyTo) throws MessagingException {
         msg.setHeader("In-Reply-To", inReplyTo);
         msg.setHeader("References", inReplyTo);
     }

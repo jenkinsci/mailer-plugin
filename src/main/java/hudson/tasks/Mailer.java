@@ -24,6 +24,7 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
@@ -62,8 +63,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -215,8 +214,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @throws UnsupportedEncodingException Unsupported encoding
      * @since TODO
      */
-    public static @Nonnull InternetAddress stringToAddress(@Nonnull String strAddress, 
-            @Nonnull String charset) throws AddressException, UnsupportedEncodingException {
+    public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress, 
+            @NonNull String charset) throws AddressException, UnsupportedEncodingException {
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
         if(!m.matches()) {
             return new InternetAddress(strAddress);
