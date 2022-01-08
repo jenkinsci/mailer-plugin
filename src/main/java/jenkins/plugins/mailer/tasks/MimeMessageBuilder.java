@@ -66,6 +66,7 @@ import java.util.logging.Logger;
 public class MimeMessageBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(MimeMessageBuilder.class.getName());
+    private static final String PARSING_ADDRESS_ERROR_MESSAGE = "Unable to parse Reply-To Addresses ";
 
     private String charset = "UTF-8";
     private String mimeType = "text/plain";
@@ -89,7 +90,7 @@ public class MimeMessageBuilder {
             try {
                 replyTo.addAll(toNormalizedAddresses(rto));
             } catch(UnsupportedEncodingException e) {
-                logError("Unable to parse Reply-To Addresses " + rto, e);
+                logError(PARSING_ADDRESS_ERROR_MESSAGE + rto, e);
             }
         }
     }
@@ -126,7 +127,7 @@ public class MimeMessageBuilder {
             this.replyTo.clear();
             this.replyTo.addAll(addresses);
         } catch(UnsupportedEncodingException e) {
-            logError("Unable to parse Reply-To Addresses " + replyTo, e);
+            logError(PARSING_ADDRESS_ERROR_MESSAGE + replyTo, e);
         }
         return this;
     }
@@ -135,7 +136,7 @@ public class MimeMessageBuilder {
         try {
             this.replyTo.addAll(toNormalizedAddresses(replyTo));
         } catch(UnsupportedEncodingException e) {
-            logError("Unable to parse Reply-To Addresses " + replyTo, e);
+            logError(PARSING_ADDRESS_ERROR_MESSAGE + replyTo, e);
         }
         return this;
     }
