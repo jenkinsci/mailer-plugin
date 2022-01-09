@@ -62,6 +62,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Optional;
@@ -297,7 +298,11 @@ public class MailerTest {
 
         @Override
         public synchronized void load() {
-            getConfigFile().delete();
+            try {
+                getConfigFile().delete();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             super.load();
         }
     };

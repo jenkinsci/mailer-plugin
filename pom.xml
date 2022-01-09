@@ -23,7 +23,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <java.level>8</java.level>
-    <jenkins.version>2.289.1</jenkins.version>
+    <jenkins.version>2.329-rc31978.fa_f50a_a_d3e46</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/6165 -->
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
@@ -31,8 +31,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.289.x</artifactId>
-        <version>1075.v14bef33e5d7b</version>
+        <artifactId>bom-weekly</artifactId>
+        <version>1090.v0a_33df40457a_</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -52,10 +52,6 @@
         <exclusion>
           <groupId>org.hamcrest</groupId>
           <artifactId>hamcrest-core</artifactId>
-        </exclusion>
-        <exclusion> <!-- TODO pending https://github.com/jenkinsci/plugin-util-api-plugin/releases/tag/v2.9.0 in bom -->
-          <groupId>javax.annotation</groupId>
-          <artifactId>javax.annotation-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -79,7 +75,7 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>javax-mail-api</artifactId>
-      <version>1.6.2-2</version>
+      <version>1.6.2-5</version>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
