@@ -24,6 +24,7 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
@@ -62,8 +63,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -215,8 +214,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @throws UnsupportedEncodingException Unsupported encoding
      * @since TODO
      */
-    public static @Nonnull InternetAddress stringToAddress(@Nonnull String strAddress, 
-            @Nonnull String charset) throws AddressException, UnsupportedEncodingException {
+    public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress, 
+            @NonNull String charset) throws AddressException, UnsupportedEncodingException {
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
         if(!m.matches()) {
             return new InternetAddress(strAddress);
@@ -263,8 +262,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         private transient String smtpAuthUsername;
 
-        @Deprecated
+        
         /** @deprecated as of 1.23, use {@link #authentication} */
+        @Deprecated
         private transient Secret smtpAuthPassword;
 
         private SMTPAuthentication authentication;
@@ -369,6 +369,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
             final String SMTP_PORT_PROPERTY = "mail.smtp.port";
             final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
+            final String SMTP_SSL_ENABLE_PROPERTY = "mail.smtp.ssl.enable";
 
             smtpHost = Util.fixEmptyAndTrim(smtpHost);
             smtpPort = Util.fixEmptyAndTrim(smtpPort);
@@ -393,11 +394,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     props.put(SMTP_PORT_PROPERTY, port);
                     props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
             	}
-            	if (props.getProperty("mail.smtp.socketFactory.class") == null) {
-                    // TODO SocketFactory properties are now discouraged. Using (`mail.smtp.ssl.enable`, "true") should suffice
-                    // https://javaee.github.io/javamail/FAQ#commonmistakes
-            		// Example also found at https://javaee.github.io/javamail/FAQ#smtpssl
-                    props.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
+            	if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY) == null) {
+                    props.put(SMTP_SSL_ENABLE_PROPERTY, "true");
+                    props.put("mail.smtp.ssl.checkserveridentity", true);
             	}
 				props.put("mail.smtp.socketFactory.fallback", "false");
             	if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
@@ -431,7 +430,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         private static Authenticator getAuthenticator(final String smtpAuthUserName, final String smtpAuthPassword) {
-            if(smtpAuthUserName==null)    return null;
+            if(smtpAuthUserName == null) {
+            	return null;
+            }
             return new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
@@ -443,20 +444,18 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
-            // TODO(alfabravoteam): try-with-resources for BulkChange instance? (JENIINS-TODO)
-            BulkChange b = new BulkChange(this);
             // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
             // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
             // case of failure to databind, it gets reverted to previous value.
             // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
             SMTPAuthentication current = this.authentication;
-            try {
+            
+            try (BulkChange b = new BulkChange(this)) {
                 this.authentication = null;
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
                 this.authentication = current;
-                b.abort();
                 throw new FormException("Failed to apply configuration", e, null);
             }
             
@@ -472,8 +471,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return smtpHost;
         }
 
-        @Deprecated
+        
         /** @deprecated as of 1.23, use {@link #getSmtpHost()} */
+        @Deprecated
         public String getSmtpServer() {
             return smtpHost;
         }
@@ -710,7 +710,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
                 Jenkins.get().checkPermission(DescriptorImpl.getJenkinsManageOrAdmin());
-
                 if (!authentication) {
                     username = null;
                     password = null;

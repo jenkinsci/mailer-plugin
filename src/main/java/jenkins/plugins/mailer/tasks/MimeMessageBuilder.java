@@ -25,7 +25,6 @@
 package jenkins.plugins.mailer.tasks;
 
 import hudson.model.TaskListener;
-import hudson.remoting.Base64;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -33,7 +32,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.mail.Address;
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -49,6 +48,7 @@ import javax.mail.internet.MimeUtility;
 
 import java.io.UnsupportedEncodingException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
@@ -66,6 +66,7 @@ import java.util.logging.Logger;
 public class MimeMessageBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(MimeMessageBuilder.class.getName());
+    private static final String PARSING_ADDRESS_ERROR_MESSAGE = "Unable to parse Reply-To Addresses ";
 
     private String charset = "UTF-8";
     private String mimeType = "text/plain";
@@ -89,17 +90,17 @@ public class MimeMessageBuilder {
             try {
                 replyTo.addAll(toNormalizedAddresses(rto));
             } catch(UnsupportedEncodingException e) {
-                logError("Unable to parse Reply-To Addresses " + rto, e);
+                logError(PARSING_ADDRESS_ERROR_MESSAGE + rto, e);
             }
         }
     }
 
-    public MimeMessageBuilder setCharset(@Nonnull String charset) {
+    public MimeMessageBuilder setCharset(@NonNull String charset) {
         this.charset = charset;
         return this;
     }
 
-    public MimeMessageBuilder setMimeType(@Nonnull String mimeType) {
+    public MimeMessageBuilder setMimeType(@NonNull String mimeType) {
         this.mimeType = mimeType;
         return this;
     }
@@ -109,44 +110,44 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder setDefaultSuffix(@Nonnull String defaultSuffix) {
+    public MimeMessageBuilder setDefaultSuffix(@NonNull String defaultSuffix) {
         this.defaultSuffix = defaultSuffix;
         return this;
     }
 
-    public MimeMessageBuilder setFrom(@Nonnull String from) {
+    public MimeMessageBuilder setFrom(@NonNull String from) {
         this.from = from;
         return this;
     }
 
-    public MimeMessageBuilder setReplyTo(@Nonnull String replyTo) {
+    public MimeMessageBuilder setReplyTo(@NonNull String replyTo) {
         try {
             final List<InternetAddress> addresses = toNormalizedAddresses(replyTo);
             // Done after to leave the current value untouched if there is a parsing error.
             this.replyTo.clear();
             this.replyTo.addAll(addresses);
         } catch(UnsupportedEncodingException e) {
-            logError("Unable to parse Reply-To Addresses " + replyTo, e);
+            logError(PARSING_ADDRESS_ERROR_MESSAGE + replyTo, e);
         }
         return this;
     }
 
-    public MimeMessageBuilder addReplyTo(@Nonnull String replyTo) {
+    public MimeMessageBuilder addReplyTo(@NonNull String replyTo) {
         try {
             this.replyTo.addAll(toNormalizedAddresses(replyTo));
         } catch(UnsupportedEncodingException e) {
-            logError("Unable to parse Reply-To Addresses " + replyTo, e);
+            logError(PARSING_ADDRESS_ERROR_MESSAGE + replyTo, e);
         }
         return this;
     }
 
 
-    public MimeMessageBuilder setSubject(@Nonnull String subject) {
+    public MimeMessageBuilder setSubject(@NonNull String subject) {
         this.subject = subject;
         return this;
     }
 
-    public MimeMessageBuilder setBody(@Nonnull String body) {
+    public MimeMessageBuilder setBody(@NonNull String body) {
         this.body = body;
         return this;
     }
@@ -156,7 +157,7 @@ public class MimeMessageBuilder {
         return this;
     }
 
-    public MimeMessageBuilder addRecipients(@Nonnull String recipients) throws UnsupportedEncodingException {
+    public MimeMessageBuilder addRecipients(@NonNull String recipients) throws UnsupportedEncodingException {
         addRecipients(recipients, Message.RecipientType.TO);
         return this;
     }
@@ -168,7 +169,7 @@ public class MimeMessageBuilder {
      * @return the constructed message with the given recipients
      * @throws UnsupportedEncodingException in case of encoding problems
      */
-    public MimeMessageBuilder addRecipients(@Nonnull String recipients, @Nonnull Message.RecipientType recipientType) throws UnsupportedEncodingException {
+    public MimeMessageBuilder addRecipients(@NonNull String recipients, @NonNull Message.RecipientType recipientType) throws UnsupportedEncodingException {
         StringTokenizer tokens = new StringTokenizer(recipients, " \t\n\r\f,");
         while (tokens.hasMoreTokens()) {
             String addressToken = tokens.nextToken();
@@ -220,7 +221,7 @@ public class MimeMessageBuilder {
             String encodedIdentity;
             try {
                 RSAPublicKey publicKey = InstanceIdentity.get().getPublic();
-                encodedIdentity = Base64.encode(publicKey.getEncoded());
+                encodedIdentity = Base64.getEncoder().encodeToString(publicKey.getEncoded());
             } catch (Throwable t) {
                 // Ignore. Just don't add the identity header.
                  logError("Failed to set Jenkins Identity header on email.", t);
@@ -239,7 +240,7 @@ public class MimeMessageBuilder {
         return addresses;
     }
 
-    public static void setInReplyTo(@Nonnull MimeMessage msg, @Nonnull String inReplyTo) throws MessagingException {
+    public static void setInReplyTo(@NonNull MimeMessage msg, @NonNull String inReplyTo) throws MessagingException {
         msg.setHeader("In-Reply-To", inReplyTo);
         msg.setHeader("References", inReplyTo);
     }

@@ -39,8 +39,8 @@ import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Transport;
@@ -460,7 +460,7 @@ public class MailSender {
     /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception. */
     static /* not final */ boolean SEND_TO_UNAUTHORIZED_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNAUTHORIZED_USERS");
 
-    @Nonnull
+    @NonNull
     String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
         Set<User> users = build.getCulprits();
         StringBuilder userEmails = new StringBuilder();

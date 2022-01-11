@@ -26,7 +26,6 @@ package jenkins.plugins.mailer.tasks;
 import hudson.tasks.Mailer;
 import jenkins.model.JenkinsLocationConfiguration;
 
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,6 +45,7 @@ import java.io.StringWriter;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -95,7 +95,7 @@ public class MimeMessageBuilderTest {
 
         // Make sure we can regen the instance identifier public key
         String encodedIdent = mimeMessage.getHeader("X-Instance-Identity")[0];
-        byte[] image = Base64.decodeBase64(encodedIdent);
+        byte[] image = Base64.getDecoder().decode(encodedIdent);
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(image));
         Assert.assertNotNull(publicKey);
     }
