@@ -13,12 +13,14 @@ import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -72,40 +74,23 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
     }
 
     private Object readResolve() {
-        if (username != null || password != null) {
+        if (StringUtils.isBlank(credentialsId) && (username != null || password != null)) {
             LOGGER.log(Level.CONFIG, "Migrating the Mailer SMTP authentication details to credential...");
 
-            final CredentialsStore store = StreamSupport.stream(CredentialsProvider.lookupStores(Jenkins.get()).spliterator(), false)
-                    .filter(s -> s instanceof SystemCredentialsProvider.StoreImpl)
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Could not migrate the Mailer SMTP authentication details to credential, as the system credentials provider was missing."));
+            final StandardUsernamePasswordCredentials migratedCredential = new UsernamePasswordCredentialsImpl(
+                    CredentialsScope.GLOBAL,
+                    null,
+                    "Mailer SMTP authentication credentials (migrated)",
+                    username,
+                    password.getPlainText());
 
-            final boolean isSuccess = Retryable.retry(9, (attempt) -> {
-                LOGGER.log(Level.CONFIG, "Attempt {0}...", attempt);
+            SystemCredentialsProvider.getInstance().getCredentials().add(migratedCredential);
 
-                final String id = UUID.randomUUID().toString();
-
-                final StandardUsernamePasswordCredentials migratedCredential = new UsernamePasswordCredentialsImpl(
-                        CredentialsScope.GLOBAL,
-                        id,
-                        "Mailer SMTP authentication credentials (migrated)",
-                        username,
-                        password.getEncryptedValue());
-
-                store.addCredentials(Domain.global(), migratedCredential);
-
-                this.credentialsId = id;
-
-                LOGGER.log(Level.CONFIG, "Successfully migrated the Mailer SMTP authentication details to the credential {0}", id);
-            });
-
-            if (!isSuccess) {
-                throw new RuntimeException("All attempts to migrate the Mailer SMTP authentication details failed");
-            }
-
-            username = null;
-            password = null;
+            credentialsId = migratedCredential.getId();
         }
+
+        username = null;
+        password = null;
 
         return this;
     }
