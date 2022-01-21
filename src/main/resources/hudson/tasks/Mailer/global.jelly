@@ -26,7 +26,7 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:section title="${%E-mail Notification}">
     <f:entry title="${%SMTP server}" field="smtpHost">
-      <f:textbox />
+      <f:textbox checkMethod="post" />
     </f:entry>
     <f:entry title="${%Default user e-mail suffix}" field="defaultSuffix">
       <f:textbox />

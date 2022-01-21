@@ -668,7 +668,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
         }
 
-        public FormValidation doCheckSmtpServer(@QueryParameter String value) {
+        @RequirePOST
+        public FormValidation doCheckSmtpHost(@QueryParameter String value) {
+            Jenkins.get().checkPermission(getJenkinsManageOrAdmin());
             try {
                 if (Util.fixEmptyAndTrim(value)!=null)
                     InetAddress.getByName(value);
