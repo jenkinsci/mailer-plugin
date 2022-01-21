@@ -23,7 +23,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <java.level>8</java.level>
-    <jenkins.version>2.329-rc31978.fa_f50a_a_d3e46</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/6165 -->
+    <jenkins.version>2.331</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
