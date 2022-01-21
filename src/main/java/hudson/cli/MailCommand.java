@@ -27,8 +27,8 @@ import hudson.tasks.Mailer;
 import hudson.Extension;
 import jenkins.model.Jenkins;
 
-import javax.mail.internet.MimeMessage;
-import javax.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.Transport;
 
 /**
  * Sends e-mail through Jenkins.

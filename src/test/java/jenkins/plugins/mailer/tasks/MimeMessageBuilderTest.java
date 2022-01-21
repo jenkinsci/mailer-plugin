@@ -35,11 +35,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.mock_javamail.Mailbox;
 import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 import java.io.StringWriter;
 import java.security.KeyFactory;
