@@ -22,7 +22,7 @@
   </licenses>
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.289.1</jenkins.version>
+    <jenkins.version>2.332.1</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
@@ -30,8 +30,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-weekly</artifactId>
-        <version>1117.v62a_f6a_01de98</version>
+        <artifactId>bom-2.332.x</artifactId>
+        <version>1155.v77b_fd92a_26fc</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -74,7 +74,6 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>javax-mail-api</artifactId>
-      <version>1.6.2-5</version>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
