@@ -30,10 +30,8 @@ import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
-import hudson.security.Permission;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
-import hudson.util.ReflectionUtils;
 import hudson.util.Secret;
 import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -62,8 +60,6 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -449,13 +445,6 @@ public class MailerTest {
 
     @Test
     public void managePermissionShouldAccessGlobalConfig() {
-        Permission jenkinsManage;
-        try {
-            jenkinsManage = getJenkinsManage();
-        } catch (Exception e) {
-            Assume.assumeTrue("Jenkins baseline is too old for this test (requires Jenkins.MANAGE)", false);
-            return;
-        }
         final String USER = "user";
         final String MANAGER = "manager";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
@@ -465,7 +454,7 @@ public class MailerTest {
 
                                                    // Read and Manage
                                                    .grant(Jenkins.READ).everywhere().to(MANAGER)
-                                                   .grant(jenkinsManage).everywhere().to(MANAGER)
+                                                   .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
         );
 
         try (ACLContext c = ACL.as(User.getById(USER, true))) {
@@ -511,13 +500,6 @@ public class MailerTest {
         try (ACLContext ignored = ACL.as(User.getById(MANAGER, true))) {
             Mailer.descriptor().doCheckSmtpHost("domain.com");
         }
-    }
-
-    // TODO: remove when Jenkins core baseline is 2.222+
-    private Permission getJenkinsManage() throws NoSuchMethodException, IllegalAccessException,
-                                                 InvocationTargetException {
-        // Jenkins.MANAGE is available starting from Jenkins 2.222 (https://jenkins.io/changelog/#v2.222). See JEP-223 for more info
-        return (Permission) ReflectionUtils.getPublicProperty(Jenkins.get(), "MANAGE");
     }
 
     private final class TestProject {
