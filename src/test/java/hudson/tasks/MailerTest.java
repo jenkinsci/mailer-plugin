@@ -72,6 +72,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -260,6 +261,8 @@ public class MailerTest {
 
     @Test
     public void globalConfig() throws Exception {
+        Assume.assumeThat("TODO the form elements for email-ext have the same names", rule.getPluginManager().getPlugin("email-ext"), is(nullValue()));
+
         WebClient webClient = rule.createWebClient();
         HtmlPage cp = webClient.goTo("configure");
         HtmlForm form = cp.getFormByName("config");
