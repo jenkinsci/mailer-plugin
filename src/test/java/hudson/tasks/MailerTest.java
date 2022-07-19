@@ -60,6 +60,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -300,9 +301,8 @@ public class MailerTest {
         public synchronized void load() {
             try {
                 getConfigFile().delete();
-            } catch (Exception e) {
-                // TODO 2.325+ catch IOException and throw UncheckedIOException
-                throw new RuntimeException(e);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
             super.load();
         }
