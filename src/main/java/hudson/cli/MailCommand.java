@@ -45,7 +45,7 @@ public class MailCommand extends CLICommand {
     }
 
     protected int run() throws Exception {
-        Jenkins.get().checkPermission(Mailer.DescriptorImpl.getJenkinsManageOrAdmin());
+        Jenkins.get().checkPermission(Jenkins.MANAGE);
         Transport.send(new MimeMessage(Mailer.descriptor().createSession(), stdin));
         return 0;
     }
