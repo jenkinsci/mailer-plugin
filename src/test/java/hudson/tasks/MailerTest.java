@@ -53,8 +53,8 @@ import org.jvnet.hudson.test.UnstableBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.jvnet.mock_javamail.Mailbox;
 
-import javax.mail.Address;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.Address;
+import jakarta.mail.internet.InternetAddress;
 
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
