@@ -27,7 +27,6 @@ package hudson.tasks;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.Util;
 
 import hudson.BulkChange;
 import hudson.EnvVars;
@@ -41,7 +40,6 @@ import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.security.Permission;
 import hudson.util.FormValidation;
-import hudson.util.ReflectionUtils;
 import hudson.util.Secret;
 import hudson.util.XStream2;
 
@@ -53,7 +51,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -325,20 +322,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @NonNull
-        // TODO: Add @Override when Jenkins core baseline is 2.222+
+        @Override
         public Permission getRequiredGlobalConfigPagePermission() {
-            return getJenkinsManageOrAdmin();
-        }
-
-        // TODO: remove when Jenkins core baseline is 2.222+
-        public static Permission getJenkinsManageOrAdmin() {
-            Permission manage;
-            try { // Manage is available starting from Jenkins 2.222 (https://jenkins.io/changelog/#v2.222). See JEP-223 for more info
-                manage = (Permission) ReflectionUtils.getPublicProperty(Jenkins.get(), "MANAGE");
-            } catch (IllegalArgumentException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
-                manage = Jenkins.ADMINISTER;
-            }
-            return manage;
+            return Jenkins.MANAGE;
         }
 
         public String getDisplayName() {
@@ -670,7 +656,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @RequirePOST
         public FormValidation doCheckSmtpHost(@QueryParameter String value) {
-            Jenkins.get().checkPermission(getJenkinsManageOrAdmin());
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
                 if (Util.fixEmptyAndTrim(value)!=null)
                     InetAddress.getByName(value);
@@ -709,7 +695,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
-                Jenkins.get().checkPermission(DescriptorImpl.getJenkinsManageOrAdmin());
+                Jenkins.get().checkPermission(Jenkins.MANAGE);
                 if (!authentication) {
                     username = null;
                     password = null;
