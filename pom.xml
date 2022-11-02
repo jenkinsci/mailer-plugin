@@ -22,7 +22,7 @@
   </licenses>
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.357</jenkins.version>
+    <jenkins.version>2.361.1</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <useBeta>true</useBeta>
   </properties>
@@ -31,7 +31,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.346.x</artifactId>
+        <artifactId>bom-2.361.x</artifactId>
         <version>1654.vcb_69d035fa_20</version>
         <scope>import</scope>
         <type>pom</type>
