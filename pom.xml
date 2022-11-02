@@ -9,7 +9,7 @@
   
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
-  <version>${changelist}</version>
+  <version>435.${changelist}</version>
   <name>Jenkins Mailer Plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   
