@@ -214,6 +214,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * @deprecated as of 1.286
      *      Use {@link #all()} for read access and {@link Extension} for registration.
      */
+    @Deprecated
     public static final List<MailAddressResolver> LIST = ExtensionListView.createList(MailAddressResolver.class);
 
     /**

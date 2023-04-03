@@ -227,6 +227,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @deprecated as of 1.286
      *      Use {@link #descriptor()} to obtain the current instance.
      */
+    @Deprecated
     @Restricted(NoExternalUse.class)
     @RestrictedSince("1.355")
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Deprecated API field")
@@ -253,6 +254,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      This is loaded to {@link JenkinsLocationConfiguration} via the XML file
          *      marshaled with {@link XStream2}.
          */
+        @Deprecated
         private String hudsonUrl;
 
         /** @deprecated as of 1.23, use {@link #authentication} */
@@ -274,6 +276,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Maintained in {@link JenkinsLocationConfiguration} but left here
          *      for compatibility just in case, so as not to lose this information.
          */
+        @Deprecated
         private String adminAddress;
 
         /**
