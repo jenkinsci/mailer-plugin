@@ -1,9 +1,8 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <hudson.tasks.Mailer_-DescriptorImpl plugin="mailer@1.24">
   <defaultSuffix>@mydomain.com</defaultSuffix>
-  <authentication>
-    <credentialsId>foo</credentialsId>
-  </authentication>
+  <smtpAuthUsername>olduser</smtpAuthUsername>
+  <smtpAuthPassword>{AQAAABAAAAAQ1UuHpGkqtUa56seSp+wJjfuiggZPi/D+t38985a5tXU=}</smtpAuthPassword>
   <replyToAddress>noreplay@mydomain.com</replyToAddress>
   <smtpHost>old.data.smtp.host</smtpHost>
   <useSsl>true</useSsl>
