@@ -23,8 +23,8 @@
  */
 package hudson.tasks;
 
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlPage;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.*;
@@ -264,11 +264,11 @@ public class MailerTest {
         HtmlPage cp = webClient.goTo("configure");
         HtmlForm form = cp.getFormByName("config");
 
-        form.getInputByName("_.smtpHost").setValueAttribute("acme.com");
-        form.getInputByName("_.defaultSuffix").setValueAttribute("@acme.com");
+        form.getInputByName("_.smtpHost").setValue("acme.com");
+        form.getInputByName("_.defaultSuffix").setValue("@acme.com");
         form.getInputByName("_.authentication").setChecked(true);
-        form.getInputByName("_.username").setValueAttribute("user");
-        form.getInputByName("_.password").setValueAttribute("pass");
+        form.getInputByName("_.username").setValue("user");
+        form.getInputByName("_.password").setValue("pass");
 
         rule.submit(form);
 
