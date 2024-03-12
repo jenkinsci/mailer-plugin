@@ -32,6 +32,7 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.FormValidation;
 import hudson.util.Secret;
 import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -40,7 +41,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.FakeChangeLogSCM;
@@ -65,6 +65,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -74,7 +75,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -193,7 +193,7 @@ public class MailerTest {
         assertEquals("UTF-8",d.getCharset());
     }
 
-    @Bug(1566)
+    @Issue("JENKINS-1566")
     @Test
     public void testSenderAddress() throws Exception {
         // intentionally give the whole thin in a double quote
@@ -287,7 +287,28 @@ public class MailerTest {
 
         assertNull(d.getAuthentication());
     }
-    
+
+    @Test
+    public void authenticationFormValidation() {
+        DescriptorImpl d = Mailer.descriptor();
+
+        // no authentication without TLS/SSL
+        assertThat(d.doCheckAuthentication(false, false, false), is(FormValidation.ok()));
+
+        // no authentication with TLS / SSL combos
+        assertThat(d.doCheckAuthentication(false, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(false, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(false, true, true), is(FormValidation.ok()));
+        
+        // authentication without TLS/SSL
+        assertThat(d.doCheckAuthentication(true, false, false).kind, is(FormValidation.Kind.WARNING));
+
+        // authentication with TSL / SSL combos
+        assertThat(d.doCheckAuthentication(true, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(true, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(true, true, true), is(FormValidation.ok()));
+    }
+
     /**
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */

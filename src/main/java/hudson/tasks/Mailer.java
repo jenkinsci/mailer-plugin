@@ -38,6 +38,7 @@ import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
+import jenkins.security.FIPS140;
 import hudson.security.Permission;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
@@ -408,8 +409,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 props.put("mail.smtp.starttls.enable", "true");
                 props.put("mail.smtp.starttls.required", "true");
             }
-            if(smtpAuthUserName!=null)
+            if(smtpAuthUserName!=null) {
                 props.put("mail.smtp.auth","true");
+                if (FIPS140.useCompliantAlgorithms()) {
+                    // the authentication mechanisms can only be performed when protected by TLS/SSL
+                    if (!(useSsl || useTls)) {
+                        throw new IllegalStateException("SMTP Authentication can only be used when either TLS or SSL is used");
+                    }
+                }
+            }
 
             // avoid hang by setting some timeout. 
             props.put("mail.smtp.timeout","60000");
@@ -703,7 +711,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     username = null;
                     password = null;
                 }
-                
+                if (FIPS140.useCompliantAlgorithms() && authentication && !(useSsl || useTls)) {
+                    return FormValidation.error(Messages.Mailer_InsecureAuthError());
+                }
+
                 MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), Jenkins.get().getDisplayName()), charset);
@@ -719,6 +730,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             } catch (MessagingException e) {
                 return FormValidation.errorWithMarkup("<p>"+Messages.Mailer_FailedToSendEmail()+"</p><pre>"+Util.escape(Functions.printThrowable(e))+"</pre>");
             }
+        }
+
+        @RequirePOST
+        public FormValidation doCheckAuthentication(@QueryParameter boolean authentication, @QueryParameter boolean useSsl, @QueryParameter boolean useTls) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            if (!authentication || useSsl || useTls) {
+                return FormValidation.ok();
+            }
+            // authentication is enabled without either TLS or SSL
+            if (FIPS140.useCompliantAlgorithms()) {
+                return FormValidation.error(Messages.Mailer_InsecureAuthError());
+            }
+            return FormValidation.warning(Messages.Mailer_InsecureAuthWarning());
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
