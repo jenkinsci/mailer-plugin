@@ -26,7 +26,6 @@ package hudson.tasks;
 import com.thoughtworks.xstream.annotations.XStreamConverter;
 import hudson.model.Action;
 import hudson.model.Run;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
 import hudson.util.LRUStringConverter;
 
 /**

@@ -26,7 +26,6 @@ package jenkins.plugins.mailer.tasks;
 import hudson.tasks.Mailer;
 import jenkins.model.JenkinsLocationConfiguration;
 
-import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,16 +35,17 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.mock_javamail.Mailbox;
 import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.Transport;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
 
 import java.io.StringWriter;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -95,7 +95,7 @@ public class MimeMessageBuilderTest {
 
         // Make sure we can regen the instance identifier public key
         String encodedIdent = mimeMessage.getHeader("X-Instance-Identity")[0];
-        byte[] image = Base64.decodeBase64(encodedIdent);
+        byte[] image = Base64.getDecoder().decode(encodedIdent);
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(image));
         Assert.assertNotNull(publicKey);
     }

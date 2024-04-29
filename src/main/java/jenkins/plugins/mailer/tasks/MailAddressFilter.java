@@ -31,7 +31,6 @@ import hudson.Util;
 import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.AbstractBuild;
-import hudson.model.Hudson;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
@@ -41,7 +40,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetAddress;
 
 /**
  * Checks email addresses if they should be excluded from sent emails.
@@ -150,36 +149,18 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
 
     @Override
     public MailAddressFilterDescriptor getDescriptor() {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins != null) {
-            return (MailAddressFilterDescriptor)jenkins.getDescriptor(getClass());
-        } else {
-            throw new IllegalStateException("Jenkins is not active.");
-        }
+        return (MailAddressFilterDescriptor)Jenkins.get().getDescriptor(getClass());
     }
     
     /**
      * @return all of the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins != null) {
-            return jenkins.<MailAddressFilter, MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
-        } else {
-            throw new IllegalStateException("Jenkins is not active.");
-        }
+        return Jenkins.get().<MailAddressFilter, MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
     }
-    
+
     public static ExtensionList<MailAddressFilter> allExtensions() {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins != null) {
-            return jenkins.getExtensionList(MailAddressFilter.class);
-        } else {
-            throw new IllegalStateException("Jenkins is not active.");
-        }
+        return Jenkins.get().getExtensionList(MailAddressFilter.class);
     }
 
     private static final Logger LOGGER = Logger.getLogger(MailAddressFilter.class.getName());

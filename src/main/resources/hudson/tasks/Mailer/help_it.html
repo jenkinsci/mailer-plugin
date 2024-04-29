@@ -1,0 +1,22 @@
+<div>
+  Se configurato, Jenkins invierà un messaggio di posta elettronica ai
+  destinatari selezionati al verificarsi di un certo evento importante.
+
+  <ol>
+    <li>Ogni compilazione non riuscita scatena un nuovo messaggio di posta
+        elettronica.
+    <li>Una compilazione riuscita che ne segue una non riuscita (o instabile)
+        scatena un nuovo messaggio di posta elettronica che indica che un
+        momento di crisi è terminato.
+    <li>Una compilazione instabile che ne segue una riuscita scatena un nuovo
+        messaggio di posta elettronica che indica che si è verificata una
+        regressione.
+    <li>A meno che non si sia adottata una diversa configurazione, ogni
+        compilazione instabile scatena un nuovo messaggio di posta elettronica
+        che indica che la regressione è ancora presente.
+  </ol>
+
+  Per i progetti in cui le compilazioni instabili sono la norma,
+  deselezionare l'opzione "Invia un messaggio di posta elettronica per ogni
+  compilazione non stabile".
+</div>

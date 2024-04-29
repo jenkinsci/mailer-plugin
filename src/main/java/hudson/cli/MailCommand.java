@@ -27,8 +27,8 @@ import hudson.tasks.Mailer;
 import hudson.Extension;
 import jenkins.model.Jenkins;
 
-import javax.mail.internet.MimeMessage;
-import javax.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.Transport;
 
 /**
  * Sends e-mail through Jenkins.
@@ -45,9 +45,8 @@ public class MailCommand extends CLICommand {
     }
 
     protected int run() throws Exception {
-        Jenkins jenkins = Jenkins.getActiveInstance();
-        jenkins.checkPermission(Jenkins.ADMINISTER);
-        Transport.send(new MimeMessage(Mailer.descriptor().createSession(),stdin));
+        Jenkins.get().checkPermission(Jenkins.MANAGE);
+        Transport.send(new MimeMessage(Mailer.descriptor().createSession(), stdin));
         return 0;
     }
 }

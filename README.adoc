@@ -2,7 +2,7 @@ Mailer plugin for Jenkins
 =========================
 
 image:https://img.shields.io/jenkins/plugin/v/mailer.svg[link="https://plugins.jenkins.io/mailer"]
-image:https://img.shields.io/github/release/jenkinsci/mailer-plugin.svg?label=release[link="https://github.com/jenkinsci/mailer-plugin/releases/latest"]
+image:https://img.shields.io/github/release/jenkinsci/mailer-plugin.svg?label=changelog[link="https://github.com/jenkinsci/mailer-plugin/releases/latest"]
 image:https://img.shields.io/jenkins/plugin/i/mailer.svg?color=blue[link="https://plugins.jenkins.io/mailer"]
 
 
@@ -28,8 +28,11 @@ If your environment requires the use of SMTP authentication, specify the user na
 * **Use SSL**: Whether or not to use SSL for connecting to the SMTP server. 
 Defaults to port `465`. 
 Other advanced configurations can be done by setting system properties. See this document for possible values and effects.
+* **Use TLS**: Whether or not to use TLS for connecting to the SMTP server.
+Defaults to port `587`.
+Other advanced configurations can be done by setting system properties. See this document for possible values and effects.
 * **SMTP Port**: Port number for the mail server. 
-Leave it empty to use the default port for the protocol (`465` if using SSL, `25` if not).
+Leave it empty to use the default port for the protocol (`587` if using TLS, `465` if using SSL, `25` if not using encryption).
 * **Reply-To Address**: Address to include in the `Reply-To` header.
 Up to version `1.16`, only one address is allowed, starting in version `1.17` more than one can be used.
 * **Charset**: character set to use to construct the message.
@@ -52,7 +55,7 @@ May reference build parameters like `$PARAM`.
 Additional options include:
 
 * **Send e-mail for every unstable build**: 
-if checked, notifications will be sent for every unstable build and not only int first build after a successful one.
+if checked, notifications will be sent for every unstable build and not only the first build after a successful one.
 * **Send separate e-mails to individuals who broke the build**: 
 if checked, the notification e-mail will be sent to individuals who have committed changes for the broken build (by assuming that those changes broke the build).
 If e-mail addresses are also specified in the recipient list, then both the individuals as well as the specified addresses get the notification e-mail. 
@@ -61,4 +64,4 @@ If the recipient list is empty, then only the individuals will receive e-mails.
 == Changelog
 
 * For recent versions, see https://github.com/jenkinsci/mailer-plugin/releases[GitHub Releases]
-* For versions 1.29 and older, see the https://wiki.jenkins.io/display/JENKINS/Mailer[Wiki page]
+* For versions 1.23 and older, see the https://wiki.jenkins.io/display/JENKINS/Mailer[Wiki page]

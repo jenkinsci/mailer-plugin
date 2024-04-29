@@ -35,17 +35,18 @@ import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import org.acegisecurity.Authentication;
+import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import jakarta.mail.Address;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -200,7 +201,10 @@ public class MailSender {
             }
         }
 
-        listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
+        if (build.getResult() == null) {
+            listener.getLogger().println("No mail will be sent out, as '" + build.getFullDisplayName() + "' does not have a result yet. Please make sure you set a proper result in case of pipeline/build scripts.");
+        }
+
         return null;
     }
 
@@ -366,7 +370,7 @@ public class MailSender {
                 // people who made a change in the upstream
                 String projectName = address.substring("upstream-individuals:".length());
                 // TODO 1.590+ Jenkins.getActiveInstance
-                final Jenkins jenkins = Jenkins.getInstance();
+                final Jenkins jenkins = Jenkins.getInstanceOrNull();
                 if (jenkins == null) {
                     listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
                     continue;
@@ -453,8 +457,10 @@ public class MailSender {
     static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
     /** If set, send to unknown users. */
     static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
+    /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception. */
+    static /* not final */ boolean SEND_TO_UNAUTHORIZED_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNAUTHORIZED_USERS");
 
-    @Nonnull
+    @NonNull
     String getUserEmailList(TaskListener listener, AbstractBuild<?, ?> build) throws AddressException, UnsupportedEncodingException {
         Set<User> users = build.getCulprits();
         StringBuilder userEmails = new StringBuilder();
@@ -463,12 +469,13 @@ public class MailSender {
             if(debug)
                 listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
             if (adrs != null) {
-                if (Jenkins.getActiveInstance().isUseSecurity()) {
+                if (Jenkins.get().isUseSecurity()) {
                     try {
                         Authentication auth = a.impersonate();
                         if (!build.getACL().hasPermission(auth, Item.READ)) {
                             if (SEND_TO_USERS_WITHOUT_READ) {
-                                listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs, build.getFullDisplayName()));
+                                listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs,
+                                                                                                           build.getFullDisplayName()));
                             } else {
                                 listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
                                 continue;
@@ -479,6 +486,13 @@ public class MailSender {
                             listener.getLogger().println(Messages.MailSender_warning_unknown_user(adrs));
                         } else {
                             listener.getLogger().println(Messages.MailSender_unknown_user(adrs));
+                            continue;
+                        }
+                    } catch (AuthenticationException e) {
+                        if (SEND_TO_UNAUTHORIZED_USERS) {
+                            listener.getLogger().println(Messages.MailSender_warning_unauthorized_user(adrs));
+                        } else {
+                            listener.getLogger().println(Messages.MailSender_unauthorized_user(adrs, e.getMessage()));
                             continue;
                         }
                     }

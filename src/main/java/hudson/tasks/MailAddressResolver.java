@@ -27,18 +27,15 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionListView;
 import hudson.ExtensionPoint;
-import jenkins.model.Jenkins;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.scm.SCM;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
 
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import hudson.tasks.Mailer;
 
 /**
  * Infers e-mail addresses for the user when none is specified.
@@ -217,6 +214,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * @deprecated as of 1.286
      *      Use {@link #all()} for read access and {@link Extension} for registration.
      */
+    @Deprecated
     public static final List<MailAddressResolver> LIST = ExtensionListView.createList(MailAddressResolver.class);
 
     /**

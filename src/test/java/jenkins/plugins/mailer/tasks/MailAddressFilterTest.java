@@ -35,26 +35,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 
 import jenkins.model.Jenkins;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 /**
  * @author Mudiaga Obada
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ MailAddressFilter.class, AbstractBuild.class, BuildListener.class })
-@PowerMockIgnore({"javax.security.*", "javax.xml.*"})
 public class MailAddressFilterTest {
 
     private Hudson jenkins;
@@ -64,15 +58,18 @@ public class MailAddressFilterTest {
     @Before
     public void setUp() throws Exception {
 
-        jenkins = PowerMockito.mock(Hudson.class);
-        build = PowerMockito.mock(AbstractBuild.class);
-        listener = PowerMockito.mock(BuildListener.class);
+        jenkins = Mockito.mock(Hudson.class);
+        build = Mockito.mock(AbstractBuild.class);
+        listener = Mockito.mock(BuildListener.class);
 
     }
 
     // Without any extension, filter should return identical set
     @Test
     public void testIdentity() throws Exception {
+
+      try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
+        mocked.when(Jenkins::get).thenReturn(jenkins);
 
         Set<InternetAddress> rcp = getRecipients();
 
@@ -84,6 +81,7 @@ public class MailAddressFilterTest {
         for (InternetAddress a : rcp) {
             Assert.assertTrue(filtered.contains(a));
         }
+      }
 
     }
 
@@ -91,13 +89,16 @@ public class MailAddressFilterTest {
     @Test
     public void testFilterExtension() throws Exception {
 
+      try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
+        mocked.when(Jenkins::get).thenReturn(jenkins);
+
         InternetAddress filteredAddress = new InternetAddress("systemUser@example.com");
 
         Set<InternetAddress> rcp = getRecipients();
         rcp.add(filteredAddress);
 
-        MailAddressFilter filter = PowerMockito.mock(MailAddressFilter.class);
-        PowerMockito.when(filter.shouldFilter(build, listener, filteredAddress)).thenReturn(true);
+        MailAddressFilter filter = Mockito.mock(MailAddressFilter.class);
+        Mockito.when(filter.shouldFilter(build, listener, filteredAddress)).thenReturn(true);
 
         configure(Arrays.asList(filter));
 
@@ -106,6 +107,7 @@ public class MailAddressFilterTest {
         Assert.assertEquals(rcp.size() - 1, filtered.size());
 
         Assert.assertTrue(!filtered.contains(filteredAddress));
+      }
 
     }
 
@@ -119,9 +121,7 @@ public class MailAddressFilterTest {
 
     private void configure(List<MailAddressFilter> filters) throws Exception {
 
-        PowerMockito.spy(MailAddressFilter.class);
-
-        PowerMockito.doReturn(new MockExtensionList(jenkins, filters)).when(MailAddressFilter.class, "allExtensions");
+        Mockito.when(jenkins.getExtensionList(MailAddressFilter.class)).thenReturn(new MockExtensionList(jenkins, filters));
     }
 
     private static class MockExtensionList extends ExtensionList<MailAddressFilter> {

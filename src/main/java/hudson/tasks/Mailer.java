@@ -24,8 +24,9 @@
  */
 package hudson.tasks;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import static hudson.Util.fixEmptyAndTrim;
 
 import hudson.BulkChange;
 import hudson.EnvVars;
@@ -37,12 +38,15 @@ import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
+import jenkins.security.FIPS140;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -57,19 +61,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.mail.Address;
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import javax.servlet.ServletException;
+import jakarta.mail.Address;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.kohsuke.accmod.Restricted;
@@ -211,8 +212,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @throws UnsupportedEncodingException Unsupported encoding
      * @since TODO
      */
-    public static @Nonnull InternetAddress stringToAddress(@Nonnull String strAddress, 
-            @Nonnull String charset) throws AddressException, UnsupportedEncodingException {
+    public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress, 
+            @NonNull String charset) throws AddressException, UnsupportedEncodingException {
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
         if(!m.matches()) {
             return new InternetAddress(strAddress);
@@ -227,18 +228,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @deprecated as of 1.286
      *      Use {@link #descriptor()} to obtain the current instance.
      */
+    @Deprecated
     @Restricted(NoExternalUse.class)
     @RestrictedSince("1.355")
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Deprecated API field")
     public static DescriptorImpl DESCRIPTOR;
 
     public static DescriptorImpl descriptor() {
-        // TODO 1.590+ Jenkins.getActiveInstance
-        final Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins instance is not ready");
-        }
-        return jenkins.getDescriptorByType(Mailer.DescriptorImpl.class);
+        return Jenkins.get().getDescriptorByType(Mailer.DescriptorImpl.class);
     }
 
     @Extension
@@ -258,14 +255,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      This is loaded to {@link JenkinsLocationConfiguration} via the XML file
          *      marshaled with {@link XStream2}.
          */
+        @Deprecated
         private String hudsonUrl;
 
         /** @deprecated as of 1.23, use {@link #authentication} */
         @Deprecated
         private transient String smtpAuthUsername;
 
-        @Deprecated
+        
         /** @deprecated as of 1.23, use {@link #authentication} */
+        @Deprecated
         private transient Secret smtpAuthPassword;
 
         private SMTPAuthentication authentication;
@@ -278,6 +277,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          *      Maintained in {@link JenkinsLocationConfiguration} but left here
          *      for compatibility just in case, so as not to lose this information.
          */
+        @Deprecated
         private String adminAddress;
 
         /**
@@ -296,6 +296,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * If true use SSL on port 465 (standard SMTPS) unless <code>smtpPort</code> is set.
          */
         private boolean useSsl;
+
+        /**
+         * If true use TLS on port 587 (standard STARTTLS) unless <code>smtpPort</code> is set.
+         */
+        private boolean useTls;
 
         /**
          * The SMTP port to use for sending e-mail. Null for default to the environment,
@@ -320,6 +325,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             DESCRIPTOR = this;
         }
 
+        @NonNull
+        @Override
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return Jenkins.MANAGE;
+        }
+
         public String getDisplayName() {
             return Messages.Mailer_DisplayName();
         }
@@ -334,7 +345,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setReplyToAddress(String address) {
-            this.replyToAddress = Util.fixEmpty(address);
+            this.replyToAddress = Util.fixEmptyAndTrim(address);
             save();
         }
 
@@ -343,17 +354,23 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @return mail session based on the underlying session parameters.
          */
         public Session createSession() {
-            return createSession(smtpHost,smtpPort,useSsl,smtpAuthUsername,smtpAuthPassword);
+            return createSession(smtpHost,smtpPort,useSsl,useTls,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
         }
-        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, String smtpAuthUserName, Secret smtpAuthPassword) {
-            smtpPort = fixEmptyAndTrim(smtpPort);
-            smtpAuthUserName = fixEmptyAndTrim(smtpAuthUserName);
+        private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
+            final String SMTP_PORT_PROPERTY = "mail.smtp.port";
+            final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
+            final String SMTP_SSL_ENABLE_PROPERTY = "mail.smtp.ssl.enable";
+
+            smtpHost = Util.fixEmptyAndTrim(smtpHost);
+            smtpPort = Util.fixEmptyAndTrim(smtpPort);
+            smtpAuthUserName = Util.fixEmptyAndTrim(smtpAuthUserName);
 
             Properties props = new Properties(System.getProperties());
-            if(fixEmptyAndTrim(smtpHost)!=null)
-                props.put("mail.smtp.host",smtpHost);
+            if(smtpHost!=null) {
+                props.put("mail.smtp.host", smtpHost);
+            }
             if (smtpPort!=null) {
-                props.put("mail.smtp.port", smtpPort);
+                props.put(SMTP_PORT_PROPERTY, smtpPort);
             }
             if (useSsl) {
             	/* This allows the user to override settings by setting system properties but
@@ -362,18 +379,45 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             	 * and thats done in mail sender, and it would be a bit of a hack to get it all to
             	 * coordinate, and we can make it work through setting mail.smtp properties.
             	 */
-            	if (props.getProperty("mail.smtp.socketFactory.port") == null) {
+            	if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
                     String port = smtpPort==null?"465":smtpPort;
-                    props.put("mail.smtp.port", port);
-                    props.put("mail.smtp.socketFactory.port", port);
+                    props.put(SMTP_PORT_PROPERTY, port);
+                    props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
             	}
-            	if (props.getProperty("mail.smtp.socketFactory.class") == null) {
-            		props.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
+            	if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY) == null) {
+                    props.put(SMTP_SSL_ENABLE_PROPERTY, "true");
+                    props.put("mail.smtp.ssl.checkserveridentity", true);
             	}
 				props.put("mail.smtp.socketFactory.fallback", "false");
+            	if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
+                    props.put("mail.smtp.ssl.checkserveridentity", "true");
+                }
 			}
-            if(smtpAuthUserName!=null)
+			if(useTls){
+                /* This allows the user to override settings by setting system properties and
+            	 * also allows us to use the default STARTTLS port, 587, if no port is already set.
+            	 * Only the properties included below are required to use STARTTLS and they are
+            	 * not expected to be enabled simultaneously with SSL (it will actually throw a
+            	 * "javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?"
+            	 * if SMTP server expects only TLS).
+            	 */
+                if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
+                    String port = smtpPort==null?"587":smtpPort;
+                    props.put(SMTP_PORT_PROPERTY, port);
+                    props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
+                }
+                props.put("mail.smtp.starttls.enable", "true");
+                props.put("mail.smtp.starttls.required", "true");
+            }
+            if(smtpAuthUserName!=null) {
                 props.put("mail.smtp.auth","true");
+                if (FIPS140.useCompliantAlgorithms()) {
+                    // the authentication mechanisms can only be performed when protected by TLS/SSL
+                    if (!(useSsl || useTls)) {
+                        throw new IllegalStateException("SMTP Authentication can only be used when either TLS or SSL is used");
+                    }
+                }
+            }
 
             // avoid hang by setting some timeout. 
             props.put("mail.smtp.timeout","60000");
@@ -383,7 +427,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         private static Authenticator getAuthenticator(final String smtpAuthUserName, final String smtpAuthPassword) {
-            if(smtpAuthUserName==null)    return null;
+            if(smtpAuthUserName == null) {
+            	return null;
+            }
             return new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
@@ -395,19 +441,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
-            BulkChange b = new BulkChange(this);
+            // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
+            // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
+            // case of failure to databind, it gets reverted to previous value.
+            // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
             SMTPAuthentication current = this.authentication;
-            try {
-                // reset optional authentication to default before data-binding
-                // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
+            
+            try (BulkChange b = new BulkChange(this)) {
                 this.authentication = null;
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
-                b.abort();
-                throw new FormException("Failed to apply configuration", e, null);
-            } finally {
                 this.authentication = current;
+                throw new FormException("Failed to apply configuration", e, null);
             }
             
             return true;
@@ -422,8 +468,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return smtpHost;
         }
 
-        @Deprecated
+        
         /** @deprecated as of 1.23, use {@link #getSmtpHost()} */
+        @Deprecated
         public String getSmtpServer() {
             return smtpHost;
         }
@@ -484,11 +531,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public Secret getSmtpAuthPasswordSecret() {
-            return smtpAuthPassword;
+            if (authentication == null) return null;
+            return authentication.getPassword();
         }
 
         public boolean getUseSsl() {
         	return useSsl;
+        }
+
+        public boolean getUseTls() {
+            return useTls;
         }
 
         public String getSmtpPort() {
@@ -529,7 +581,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setSmtpHost(String smtpHost) {
-            this.smtpHost = nullify(smtpHost);
+            this.smtpHost = Util.fixEmptyAndTrim(smtpHost);
             save();
         }
 
@@ -540,8 +592,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @DataBoundSetter
+        public void setUseTls(boolean useTls) {
+            this.useTls = useTls;
+            save();
+        }
+
+        @DataBoundSetter
         public void setSmtpPort(String smtpPort) {
-            this.smtpPort = smtpPort;
+            this.smtpPort = Util.fixEmptyAndTrim(smtpPort);
             save();
         }
 
@@ -550,7 +608,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             if (charset == null || charset.length() == 0) {
                 charset = "UTF-8";
             }
-            this.charset = charset;
+            this.charset = Util.fixEmptyAndTrim(charset);
             save();
         }
 
@@ -607,9 +665,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
         }
 
-        public FormValidation doCheckSmtpServer(@QueryParameter String value) {
+        @RequirePOST
+        public FormValidation doCheckSmtpHost(@QueryParameter String value) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
-                if (fixEmptyAndTrim(value)!=null)
+                if (Util.fixEmptyAndTrim(value)!=null)
                     InetAddress.getByName(value);
                 return FormValidation.ok();
             } catch (UnknownHostException e) {
@@ -618,7 +678,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
-            if (value.matches("@[A-Za-z0-9.\\-]+") || fixEmptyAndTrim(value)==null)
+            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value)==null)
                 return FormValidation.ok();
             else
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
@@ -633,6 +693,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @param username plaintext username for SMTP authentication
          * @param password secret password for SMTP authentication
          * @param useSsl if set to {@code true} SSL is used
+         * @param useTls if set to {@code true} TLS is used
          * @param smtpPort port to use for SMTP transfer
          * @param charset charset of the underlying MIME-mail message
          * @param sendTestMailTo mail address to send test mail to
@@ -642,25 +703,21 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public FormValidation doSendTestMail(
                 @QueryParameter String smtpHost, @QueryParameter String adminAddress, @QueryParameter boolean authentication,
                 @QueryParameter String username, @QueryParameter Secret password,
-                @QueryParameter boolean useSsl, @QueryParameter String smtpPort, @QueryParameter String charset,
+                @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
-                // TODO 1.590+ Jenkins.getActiveInstance
-                final Jenkins jenkins = Jenkins.getInstance();
-                if (jenkins == null) {
-                    throw new IOException("Jenkins instance is not ready");
-                }
-
-                jenkins.checkPermission(Jenkins.ADMINISTER);
-                
+                Jenkins.get().checkPermission(Jenkins.MANAGE);
                 if (!authentication) {
                     username = null;
                     password = null;
                 }
-                
-                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, username, password));
+                if (FIPS140.useCompliantAlgorithms() && authentication && !(useSsl || useTls)) {
+                    return FormValidation.error(Messages.Mailer_InsecureAuthError());
+                }
+
+                MimeMessage msg = new MimeMessage(createSession(smtpHost, smtpPort, useSsl, useTls, username, password));
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
-                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), jenkins.getDisplayName()), charset);
+                msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), Jenkins.get().getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
                 if (StringUtils.isNotBlank(replyToAddress)) {
                     msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
@@ -673,6 +730,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             } catch (MessagingException e) {
                 return FormValidation.errorWithMarkup("<p>"+Messages.Mailer_FailedToSendEmail()+"</p><pre>"+Util.escape(Functions.printThrowable(e))+"</pre>");
             }
+        }
+
+        @RequirePOST
+        public FormValidation doCheckAuthentication(@QueryParameter boolean authentication, @QueryParameter boolean useSsl, @QueryParameter boolean useTls) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            if (!authentication || useSsl || useTls) {
+                return FormValidation.ok();
+            }
+            // authentication is enabled without either TLS or SSL
+            if (FIPS140.useCompliantAlgorithms()) {
+                return FormValidation.error(Messages.Mailer_InsecureAuthError());
+            }
+            return FormValidation.warning(Messages.Mailer_InsecureAuthWarning());
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
@@ -690,6 +760,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         private final String emailAddress;
 
+        @DataBoundConstructor
         public UserProperty(String emailAddress) {
             this.emailAddress = emailAddress;
         }
@@ -712,7 +783,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             // try the inference logic
             return MailAddressResolver.resolveFast(user);
         }
-        
+
+        @CheckForNull
+        public String getEmailAddress() {
+            return Util.fixEmptyAndTrim(emailAddress);
+        }
+
         /**
          * Gets an email address, which have been explicitly configured on the
          * user's configuration page.
@@ -736,6 +812,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Extension
+        @Symbol("mailer")
         public static final class DescriptorImpl extends UserPropertyDescriptor {
             public String getDisplayName() {
                 return Messages.Mailer_UserProperty_DisplayName();

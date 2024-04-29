@@ -26,7 +26,7 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:section title="${%E-mail Notification}">
     <f:entry title="${%SMTP server}" field="smtpHost">
-      <f:textbox />
+      <f:textbox checkMethod="post" />
     </f:entry>
     <f:entry title="${%Default user e-mail suffix}" field="defaultSuffix">
       <f:textbox />
@@ -38,8 +38,11 @@ THE SOFTWARE.
       <f:entry field="useSsl">
         <f:checkbox title="${%Use SSL}"/>
       </f:entry>
+      <f:entry title="${%Use TLS}" field="useTls">
+        <f:checkbox />
+      </f:entry>
       <f:entry title="${%SMTP Port}" field="smtpPort">
-        <f:textbox />
+        <f:number />
       </f:entry>
       <f:entry title="${%Reply-To Address}" field="replyToAddress">
         <f:textbox />
@@ -52,7 +55,7 @@ THE SOFTWARE.
       <f:entry title="${%Test e-mail recipient}">
           <f:textbox name="sendTestMailTo"/>
       </f:entry>
-      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,username,password,useSsl,smtpPort,charset" />
+      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,username,password,useSsl,useTls,smtpPort,charset" />
     </f:optionalBlock>
   </f:section>
 </j:jelly>

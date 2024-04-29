@@ -23,41 +23,59 @@
  */
 package hudson.tasks;
 
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlPage;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.*;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.FormValidation;
+import hudson.util.Secret;
+import org.hamcrest.MatcherAssert;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.jvnet.mock_javamail.Mailbox;
 
-import javax.mail.Address;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.Address;
+import jakarta.mail.internet.InternetAddress;
 
+import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -95,7 +113,87 @@ public class MailerTest {
         return new TestProject(m);
     }
 
-    @Bug(1566)
+    @Test
+    public void testFixEmptyAndTrimOne() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("smtp.host");
+        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setSmtpPort("1025");
+        d.setReplyToAddress("foo@bar.com");
+        d.setCharset("UTF-8");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimTwo() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("   smtp.host   ");
+        d.setAuthentication(new SMTPAuthentication("   user   ", Secret.fromString("pass")));
+        d.setSmtpPort("   1025   ");
+        d.setReplyToAddress("   foo@bar.com   ");
+        d.setCharset("   UTF-8   ");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertEquals("smtp.host",d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("1025",d.getSmtpPort());
+        assertEquals("foo@bar.com",d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimThree() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost("");
+        d.setAuthentication(new SMTPAuthentication("", Secret.fromString("pass")));
+        d.setSmtpPort("");
+        d.setReplyToAddress("");
+        d.setCharset("");
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Test
+    public void testFixEmptyAndTrimFour() throws Exception {
+        DescriptorImpl d = Mailer.descriptor();
+        d.setSmtpHost(null);
+        d.setAuthentication(new SMTPAuthentication(null, Secret.fromString("pass")));
+        d.setSmtpPort(null);
+        d.setReplyToAddress(null);
+        d.setCharset(null);
+
+        rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
+
+        assertNull(d.getSmtpHost());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertNull(authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertNull(d.getSmtpPort());
+        assertNull(d.getReplyToAddress());
+        assertEquals("UTF-8",d.getCharset());
+    }
+
+    @Issue("JENKINS-1566")
     @Test
     public void testSenderAddress() throws Exception {
         // intentionally give the whole thin in a double quote
@@ -135,31 +233,82 @@ public class MailerTest {
         DescriptorImpl d = Mailer.descriptor();
         JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
         d.setDefaultSuffix("default-suffix");
-        d.setHudsonUrl("http://nowhere/");
         d.setSmtpHost("smtp.host");
         d.setSmtpPort("1025");
         d.setUseSsl(true);
-        d.setSmtpAuth("user","pass");
+        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("admin@me", JenkinsLocationConfiguration.get().getAdminAddress());
         assertEquals("default-suffix",d.getDefaultSuffix());
-        assertEquals("http://nowhere/",d.getUrl());
-        assertEquals("smtp.host",d.getSmtpServer());
+        assertEquals("smtp.host",d.getSmtpHost());
         assertEquals("1025",d.getSmtpPort());
         assertEquals(true,d.getUseSsl());
-        assertEquals("user",d.getSmtpAuthUserName());
-        assertEquals("pass",d.getSmtpAuthPassword());
+        SMTPAuthentication authentication = d.getAuthentication();
+        assertEquals("user",authentication.getUsername());
+        assertEquals("pass",authentication.getPassword().getPlainText());
 
         d.setUseSsl(false);
-        d.setSmtpAuth(null,null);
+        d.setAuthentication(null);
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
         assertEquals(false,d.getUseSsl());
-        assertNull("expected null, got: " + d.getSmtpAuthUserName(), d.getSmtpAuthUserName());
-        assertNull("expected null, got: " + d.getSmtpAuthPassword(), d.getSmtpAuthPassword());
+        assertNull(d.getAuthentication());
     }
-    
+
+    @Test
+    public void globalConfig() throws Exception {
+        Assume.assumeThat("TODO the form elements for email-ext have the same names", rule.getPluginManager().getPlugin("email-ext"), is(nullValue()));
+
+        WebClient webClient = rule.createWebClient();
+        HtmlPage cp = webClient.goTo("configure");
+        HtmlForm form = cp.getFormByName("config");
+
+        form.getInputByName("_.smtpHost").setValue("acme.com");
+        form.getInputByName("_.defaultSuffix").setValue("@acme.com");
+        form.getInputByName("_.authentication").setChecked(true);
+        form.getInputByName("_.username").setValue("user");
+        form.getInputByName("_.password").setValue("pass");
+
+        rule.submit(form);
+
+        DescriptorImpl d = Mailer.descriptor();
+        assertEquals("acme.com", d.getSmtpHost());
+        assertEquals("@acme.com", d.getDefaultSuffix());
+        SMTPAuthentication auth = d.getAuthentication();
+        assertNotNull(auth);
+        assertEquals("user", auth.getUsername());
+        assertEquals("pass", auth.getPassword().getPlainText());
+
+        cp = webClient.goTo("configure");
+        form = cp.getFormByName("config");
+        form.getInputByName("_.authentication").setChecked(false);
+        rule.submit(form);
+
+        assertNull(d.getAuthentication());
+    }
+
+    @Test
+    public void authenticationFormValidation() {
+        DescriptorImpl d = Mailer.descriptor();
+
+        // no authentication without TLS/SSL
+        assertThat(d.doCheckAuthentication(false, false, false), is(FormValidation.ok()));
+
+        // no authentication with TLS / SSL combos
+        assertThat(d.doCheckAuthentication(false, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(false, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(false, true, true), is(FormValidation.ok()));
+        
+        // authentication without TLS/SSL
+        assertThat(d.doCheckAuthentication(true, false, false).kind, is(FormValidation.Kind.WARNING));
+
+        // authentication with TSL / SSL combos
+        assertThat(d.doCheckAuthentication(true, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(true, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(true, true, true), is(FormValidation.ok()));
+    }
+
     /**
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */
@@ -171,7 +320,11 @@ public class MailerTest {
 
         @Override
         public synchronized void load() {
-            getConfigFile().delete();
+            try {
+                getConfigFile().delete();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             super.load();
         }
     };
@@ -301,7 +454,7 @@ public class MailerTest {
     @LocalData
     public void testMigrateOldData() {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
-        assertTrue("Mailer can not be found", descriptor != null);
+        assertNotNull("Mailer can not be found", descriptor);
         assertEquals(String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()), "olduser", descriptor.getAuthentication().getUsername());
         assertEquals(String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
         assertEquals(String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
@@ -309,6 +462,65 @@ public class MailerTest {
         assertEquals(String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()), "old.data.smtp.host", descriptor.getSmtpHost());
         assertEquals(String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()), "808080", descriptor.getSmtpPort());
         assertTrue("SSL should be used", descriptor.getUseSsl());
+    }
+
+    @Test
+    public void managePermissionShouldAccessGlobalConfig() {
+        final String USER = "user";
+        final String MANAGER = "manager";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                                                   // Read access
+                                                   .grant(Jenkins.READ).everywhere().to(USER)
+
+                                                   // Read and Manage
+                                                   .grant(Jenkins.READ).everywhere().to(MANAGER)
+                                                   .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
+        );
+
+        try (ACLContext c = ACL.as(User.getById(USER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            MatcherAssert.assertThat("Global configuration should not be accessible to READ users", descriptors, is(empty()));
+        }
+
+        try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
+            Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
+            Optional<Descriptor> found =
+                    descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
+            assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
+        }
+    }
+
+
+    @Test
+    @Issue("SECURITY-2163")
+    public void doCheckSmtpServerShouldThrowExceptionForUserWithoutManagePermissions() {
+        final String USER = "user";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.READ).everywhere().to(USER)
+        );
+        final String expectedErrorMessage = "user is missing the Overall/Administer permission";
+
+        try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
+            RuntimeException runtimeException = assertThrows(expectedErrorMessage, RuntimeException.class,
+                    () -> Mailer.descriptor().doCheckSmtpHost("domain.com"));
+            MatcherAssert.assertThat(runtimeException.getMessage(), containsString(expectedErrorMessage));
+        }
+    }
+
+    @Test
+    @Issue("SECURITY-2163")
+    public void doCheckSmtpServerShouldNotThrowForUserWithManagePermissions() {
+        final String MANAGER = "manage";
+        rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
+        rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
+        );
+
+        try (ACLContext ignored = ACL.as(User.getById(MANAGER, true))) {
+            Mailer.descriptor().doCheckSmtpHost("domain.com");
+        }
     }
 
     private final class TestProject {

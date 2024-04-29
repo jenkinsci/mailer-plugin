@@ -1,6 +1,5 @@
 package hudson.tasks;
 
-import com.google.common.collect.Sets;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -14,21 +13,23 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
-import static org.mockito.Mockito.*;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+import org.mockito.MockedStatic;
 
 /**
  * Test case for the {@link MailSender}
@@ -37,9 +38,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
  * 
  * @author Christoph Kutzinski
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(Jenkins.class)
-@PowerMockIgnore({"javax.security.auth.Subject", "javax.security.*", "javax.xml.*"}) // otherwise as in https://groups.google.com/d/msg/jenkinsci-dev/n5sdCxrccSk/7K4yTTc7XG4J mock(ACL.class) in Java 8 fails with: java.lang.LinkageError: loader constraint violation in interface itable initialization: when resolving method "org.acegisecurity.Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863.implies(Ljavax/security/auth/Subject;)Z" the class loader (instance of org/powermock/core/classloader/MockClassLoader) of the current class, org/acegisecurity/Authentication$$EnhancerByMockitoWithCGLIB$$31bf4863, and the class loader (instance of <bootloader>) for interface java/security/Principal have different Class objects for the type javax/security/auth/Subject used in the signature
 @SuppressWarnings("rawtypes")
 public class MailSenderTest {
     
@@ -51,10 +49,10 @@ public class MailSenderTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testIncludeUpstreamCulprits() throws Exception {
-        final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
-        PowerMockito.when(jenkins.isUseSecurity()).thenReturn(false);
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getActiveInstance");
+      final Jenkins jenkins = mock(Jenkins.class);
+      when(jenkins.isUseSecurity()).thenReturn(false);
+      try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {
+        mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
 
         AbstractProject upstreamProject = mock(AbstractProject.class);
 
@@ -74,17 +72,17 @@ public class MailSenderTest {
 
         User user1 = mock(User.class);
         when(user1.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.should.not.be.included@example.com"));
-        Set<User> badGuys1 = Sets.newHashSet(user1);
+        Set<User> badGuys1 = Collections.singleton(user1);
         when(previousBuildUpstreamBuild.getCulprits()).thenReturn(badGuys1);
 
         User user2 = mock(User.class);
         when(user2.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.must.be.included@example.com"));
-        Set<User> badGuys2 = Sets.newHashSet(user2);
+        Set<User> badGuys2 = Collections.singleton(user2);
         when(upstreamBuildBetweenPreviousAndCurrent.getCulprits()).thenReturn(badGuys2);
 
         User user3 = mock(User.class);
         when(user3.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("this.one.must.be.included.too@example.com"));
-        Set<User> badGuys3 = Sets.newHashSet(user3);
+        Set<User> badGuys3 = Collections.singleton(user3);
         when(upstreamBuild.getCulprits()).thenReturn(badGuys3);
 
 
@@ -111,6 +109,7 @@ public class MailSenderTest {
         assertFalse(emailList.contains("this.one.should.not.be.included@example.com"));
         assertTrue(emailList.contains("this.one.must.be.included@example.com"));
         assertTrue(emailList.contains("this.one.must.be.included.too@example.com"));
+      }
     }
     
     /**
@@ -134,10 +133,10 @@ public class MailSenderTest {
 
     @Issue("SECURITY-372")
     @Test public void forbiddenMail() throws Exception {
-        final Jenkins jenkins = PowerMockito.mock(Jenkins.class);
-        PowerMockito.when(jenkins.isUseSecurity()).thenReturn(true);
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.doReturn(jenkins).when(Jenkins.class, "getActiveInstance");
+      final Jenkins jenkins = mock(Jenkins.class);
+      when(jenkins.isUseSecurity()).thenReturn(true);
+      try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {
+        mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
         ACL acl = mock(ACL.class);
         User authorizedU = mock(User.class);
         when(authorizedU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("authorized@mycorp"));
@@ -153,7 +152,7 @@ public class MailSenderTest {
         when(externalU.getProperty(Mailer.UserProperty.class)).thenReturn(new Mailer.UserProperty("someone@nowhere.net"));
         when(externalU.impersonate()).thenThrow(new UsernameNotFoundException(""));
         AbstractBuild<?, ?> build = mock(AbstractBuild.class);
-        when(build.getCulprits()).thenReturn(Sets.newLinkedHashSet(Arrays.asList(authorizedU, unauthorizedU, externalU)));
+        when(build.getCulprits()).thenReturn(new LinkedHashSet<>(Arrays.asList(authorizedU, unauthorizedU, externalU)));
         when(build.getACL()).thenReturn(acl);
         when(build.getFullDisplayName()).thenReturn("prj #1");
         StringWriter sw = new StringWriter();
@@ -184,6 +183,7 @@ public class MailSenderTest {
         } finally {
             MailSender.SEND_TO_USERS_WITHOUT_READ = false;
         }
+      }
     }
 
 }
