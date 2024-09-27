@@ -26,7 +26,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
     public SMTPAuthentication(String username, Secret password) {
         this.username = Util.fixEmptyAndTrim(username);
         this.password = password;
-        if (FIPS140.useCompliantAlgorithms() && (password == null || password.getPlainText().length() < 14)) {
+        if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < 14) {
             throw new IllegalArgumentException(jenkins.plugins.mailer.tasks.i18n.Messages.Mailer_SmtpPassNotFipsCompliant());
         }
     }
@@ -56,7 +56,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
 
         @RequirePOST
         public FormValidation doCheckPassword(@QueryParameter Secret password) {
-            if (FIPS140.useCompliantAlgorithms() && (password == null || password.getPlainText().length() < 14)) {
+            if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < 14) {
                 return FormValidation.error(jenkins.plugins.mailer.tasks.i18n.Messages.Mailer_SmtpPassNotFipsCompliant());
             }
             return FormValidation.ok();
