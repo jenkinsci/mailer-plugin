@@ -1,0 +1,11 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson.tasks.Mailer_-DescriptorImpl plugin="mailer@999999-SNAPSHOT">
+  <defaultSuffix></defaultSuffix>
+  <authentication>
+    <username>smtpusr</username>
+    <password>{AQAAABAAAAAQcrlS6VKIiJEH44B7K+oxdcs0j4LcZbicOnwQK0Ivlfg=}</password>
+  </authentication>
+  <useSsl>true</useSsl>
+  <useTls>false</useTls>
+  <charset>UTF-8</charset>
+</hudson.tasks.Mailer_-DescriptorImpl>

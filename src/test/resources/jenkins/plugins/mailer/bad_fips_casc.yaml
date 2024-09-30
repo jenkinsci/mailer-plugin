@@ -1,0 +1,8 @@
+unclassified:
+  mailer:
+    authentication:
+      password: "{AQAAABAAAAAQcrlS6VKIiJEH44B7K+oxdcs0j4LcZbicOnwQK0Ivlfg=}"
+      username: "smtpusr"
+    charset: "UTF-8"
+    useSsl: true
+    useTls: false
