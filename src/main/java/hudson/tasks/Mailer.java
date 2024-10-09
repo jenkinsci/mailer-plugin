@@ -77,7 +77,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.export.Exported;
 
 import jenkins.model.Jenkins;
@@ -439,7 +439,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
 
             // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
             // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
@@ -637,7 +637,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Override
-        public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public Publisher newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             Mailer m = (Mailer)super.newInstance(req, formData);
 
             if(hudsonUrl==null) {
@@ -823,7 +823,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             @Override
-            public UserProperty newInstance(@CheckForNull StaplerRequest req, JSONObject formData) throws FormException {
+            public UserProperty newInstance(@CheckForNull StaplerRequest2 req, JSONObject formData) throws FormException {
                 return new UserProperty(req != null ? req.getParameter("email.address") : null);
             }
         }
