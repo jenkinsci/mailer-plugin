@@ -17,7 +17,7 @@ import java.io.ObjectStreamException;
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthentication> {
-
+    private static final int MIN_PASSWORD_LENGTH = 14;
     private String username;
 
     private Secret password;
@@ -26,7 +26,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
     public SMTPAuthentication(String username, Secret password) {
         this.username = Util.fixEmptyAndTrim(username);
         this.password = password;
-        if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < 14) {
+        if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < MIN_PASSWORD_LENGTH) {
             throw new IllegalArgumentException(jenkins.plugins.mailer.tasks.i18n.Messages.Mailer_SmtpPassNotFipsCompliant());
         }
     }
@@ -40,7 +40,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
     }
 
     private Object readResolve() throws ObjectStreamException {
-        if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < 14) {
+        if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < MIN_PASSWORD_LENGTH) {
             throw new IllegalStateException("Mailer SMTP password: " + jenkins.plugins.mailer.tasks.i18n.Messages.Mailer_SmtpPassNotFipsCompliant());
         }
         return this;
@@ -56,7 +56,7 @@ public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthenticati
 
         @RequirePOST
         public FormValidation doCheckPassword(@QueryParameter Secret password) {
-            if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < 14) {
+            if (FIPS140.useCompliantAlgorithms() && Secret.toString(password).length() < MIN_PASSWORD_LENGTH) {
                 return FormValidation.error(jenkins.plugins.mailer.tasks.i18n.Messages.Mailer_SmtpPassNotFipsCompliant());
             }
             return FormValidation.ok();
