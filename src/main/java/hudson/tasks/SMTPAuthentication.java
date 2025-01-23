@@ -18,9 +18,9 @@ import java.io.ObjectStreamException;
  */
 public class SMTPAuthentication extends AbstractDescribableImpl<SMTPAuthentication> {
     private static final int MIN_PASSWORD_LENGTH = 14;
-    private String username;
+    private final String username;
 
-    private Secret password;
+    private final Secret password;
 
     @DataBoundConstructor
     public SMTPAuthentication(String username, Secret password) {

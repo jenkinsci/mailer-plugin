@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Luca Domenico Milanesio
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -92,25 +92,24 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Since {@link MailAddressResolver} is singleton, this method can be invoked concurrently
      * from multiple threads.
      *
-     * @param u  a given user to resolve address for
-     *
-     * @return
-     *      null if the inference failed.
+     * @param u a given user to resolve address for
+     * @return null if the inference failed.
      */
     public abstract String findMailAddressFor(User u);
-    
+
     /**
      * Try to resolve email address using resolvers.
      * If a user specifies a Mail {@link UserProperty}, then it will be used with
      * the highest priority.
+     *
      * @param u user to resolve address for
      * @return User address or null if resolution failed
      */
     public static String resolve(User u) {
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine("Resolving e-mail address for \""+u+"\" ID="+u.getId());
+            LOGGER.fine("Resolving e-mail address for \"" + u + "\" ID=" + u.getId());
         }
-        
+
         // Use User Property with a highest priority
         String userPropertyAddress = extractAddressFromUserProperty(u);
         if (userPropertyAddress != null) {
@@ -120,14 +119,14 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         for (MailAddressResolver r : all()) {
             try {
                 String email = r.findMailAddressFor(u);
-                if(email!=null) {
+                if (email != null) {
                     if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.fine(r+" resolved "+u.getId()+" to "+email);
+                        LOGGER.fine(r + " resolved " + u.getId() + " to " + email);
                     }
                     return email;
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, r+" failed to resolve "+u+". Ignoring and moving on",e);
+                LOGGER.log(Level.WARNING, r + " failed to resolve " + u + ". Ignoring and moving on", e);
             }
         }
 
@@ -139,6 +138,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * Try to resolve user email address fast enough to be used from UI
      * <p>
      * This implementation does not trigger {@link MailAddressResolver} extension point.
+     *
      * @param u A user, for whom the email should be resolved
      * @return User address or null if resolution failed
      */
@@ -148,42 +148,43 @@ public abstract class MailAddressResolver implements ExtensionPoint {
         if (userPropertyAddress != null) {
             return userPropertyAddress;
         }
-        
+
         String extractedAddress = extractAddressFromId(u.getFullName());
         if (extractedAddress != null)
             return extractedAddress;
 
-        if(u.getFullName().contains("@"))
+        if (u.getFullName().contains("@"))
             // this already looks like an e-mail ID
             return u.getFullName();
 
         String ds = Mailer.descriptor().getDefaultSuffix();
-        if(ds!=null) {
+        if (ds != null) {
             // another common pattern is "DOMAIN\person" in Windows. Only
             // do this when this full name is not manually set. see HUDSON-5164
             Matcher m = WINDOWS_DOMAIN_REGEXP.matcher(u.getFullName());
-            if (m.matches() && u.getFullName().replace('\\','_').equals(u.getId()))
-                return m.group(1)+ds; // user+defaultSuffix
+            if (m.matches() && u.getFullName().replace('\\', '_').equals(u.getId()))
+                return m.group(1) + ds; // user+defaultSuffix
 
-            return u.getId()+ds;
+            return u.getId() + ds;
         }
 
         return null;
     }
-    
+
     /**
      * Try to resolve user email using his {@link UserProperty}.
+     *
      * @param u A user, for whom the email should be resolved
      * @return User address or null if the resolution fails
      */
-    private static String extractAddressFromUserProperty (User u) {
+    private static String extractAddressFromUserProperty(User u) {
         Mailer.UserProperty emailProperty = u.getProperty(Mailer.UserProperty.class);
         if (emailProperty != null) {
             String explicitAddress = emailProperty.getExplicitlyConfiguredAddress();
             if (explicitAddress != null) // A final check to prevent concurrency issues
                 return explicitAddress;
         }
-        
+
         return null; // Return nothing by default
     }
 
@@ -192,13 +193,14 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      */
     private static String extractAddressFromId(String id) {
         Matcher m = EMAIL_ADDRESS_REGEXP.matcher(id);
-        if(m.matches())
-    		return m.group(1);
-    	return null;
+        if (m.matches())
+            return m.group(1);
+        return null;
     }
 
     /**
      * Matches strings like "Kohsuke Kawaguchi &lt;kohsuke.kawaguchi@sun.com>"
+     *
      * @see #extractAddressFromId(String)
      */
     private static final Pattern EMAIL_ADDRESS_REGEXP = Pattern.compile("^.*<([^>]+)>.*$");
@@ -212,7 +214,7 @@ public abstract class MailAddressResolver implements ExtensionPoint {
      * All registered {@link MailAddressResolver} implementations.
      *
      * @deprecated as of 1.286
-     *      Use {@link #all()} for read access and {@link Extension} for registration.
+     * Use {@link #all()} for read access and {@link Extension} for registration.
      */
     @Deprecated
     public static final List<MailAddressResolver> LIST = ExtensionListView.createList(MailAddressResolver.class);

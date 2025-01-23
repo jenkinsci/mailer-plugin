@@ -73,13 +73,13 @@ public class MimeMessageBuilder {
     private TaskListener listener;
     private String defaultSuffix;
     private String from;
-    private Set<InternetAddress> replyTo = new LinkedHashSet<InternetAddress>();
     private String subject;
     private String body;
     private AddressFilter recipientFilter;
-    private Set<InternetAddress> to = new LinkedHashSet<InternetAddress>();
-    private Set<InternetAddress> cc = new LinkedHashSet<InternetAddress>();
-    private Set<InternetAddress> bcc = new LinkedHashSet<InternetAddress>();
+    private final Set<InternetAddress> replyTo = new LinkedHashSet<>();
+    private final Set<InternetAddress> to = new LinkedHashSet<>();
+    private final Set<InternetAddress> cc = new LinkedHashSet<>();
+    private final Set<InternetAddress> bcc = new LinkedHashSet<>();
 
     public MimeMessageBuilder() {
         JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();

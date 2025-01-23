@@ -1,19 +1,19 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi,
  * Bruce Chapman, Erik Ramfelt, Jean-Baptiste Quenot, Luca Domenico Milanesio
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -61,6 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+
 import jakarta.mail.Address;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
@@ -115,16 +116,17 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
     /**
      * Default Constructor.
-     * 
+     * <p>
      * This is left for backward compatibility.
      */
     @Deprecated
-    public Mailer() {}
+    public Mailer() {
+    }
 
     /**
-     * @param recipients one or more recipients with separators
+     * @param recipients               one or more recipients with separators
      * @param notifyEveryUnstableBuild inverted for historical reasons.
-     * @param sendToIndividuals if {@code true} mails are sent to individual committers
+     * @param sendToIndividuals        if {@code true} mails are sent to individual committers
      */
     @DataBoundConstructor
     public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
@@ -134,15 +136,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     }
 
     @Override
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "build cannnot be null and the workspace is not used in case it was null")
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "build cannot be null and the workspace is not used in case it was null")
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         perform(build, build.getWorkspace(), launcher, listener);
         return true;
     }
 
     @Override
-    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
-        if(debug)
+    public void perform(@NonNull Run<?, ?> build, @NonNull FilePath workspace, @NonNull Launcher launcher, @NonNull TaskListener listener) throws IOException, InterruptedException {
+        if (debug)
             listener.getLogger().println("Running mailer");
         // substitute build parameters
         EnvVars env = build.getEnvironment(listener);
@@ -151,7 +153,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         new MailSender(recip, dontNotifyEveryUnstableBuild, sendToIndividuals, descriptor().getCharset()) {
             /** Check whether a path (/-separated) will be archived. */
             @Override
-            public boolean artifactMatches(String path, AbstractBuild<?,?> build) {
+            public boolean artifactMatches(String path, AbstractBuild<?, ?> build) {
                 // TODO a Notifier runs after a Recorder so it would make more sense to just check actual artifacts, not configuration
                 // (Anyway currently this code would only be called for an AbstractBuild, since otherwise we cannot know what hyperlink to use for a random workspace.)
                 ArtifactArchiver aa = build.getProject().getPublishersList().get(ArtifactArchiver.class);
@@ -166,14 +168,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                         pattern += "**";
                     }
                     if (SelectorUtils.matchPath(pattern, path)) {
-                        LOGGER.log(Level.FINER, "DescriptorImpl.artifactMatches true for {0} against {1}", new Object[] {path, pattern});
+                        LOGGER.log(Level.FINER, "DescriptorImpl.artifactMatches true for {0} against {1}", new Object[]{path, pattern});
                         return true;
                     }
                 }
-                LOGGER.log(Level.FINER, "DescriptorImpl.artifactMatches for {0} matched none of {1}", new Object[] {path, artifacts});
+                LOGGER.log(Level.FINER, "DescriptorImpl.artifactMatches for {0} matched none of {1}", new Object[]{path, artifacts});
                 return false;
             }
-        }.run(build,listener);
+        }.run(build, listener);
     }
 
     /**
@@ -184,15 +186,15 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     }
 
     private static Pattern ADDRESS_PATTERN = Pattern.compile("\\s*([^<]*)<([^>]+)>\\s*");
-    
+
     /**
      * Deprecated! Converts a string to {@link InternetAddress}.
-     * @param strAddress Address string
-     * @param charset Charset (encoding) to be used
-     * @return {@link InternetAddress} for the specified string
-     * @throws AddressException Malformed address
-     * @throws UnsupportedEncodingException Unsupported encoding
      *
+     * @param strAddress Address string
+     * @param charset    Charset (encoding) to be used
+     * @return {@link InternetAddress} for the specified string
+     * @throws AddressException             Malformed address
+     * @throws UnsupportedEncodingException Unsupported encoding
      * @deprecated Use {@link #stringToAddress(java.lang.String, java.lang.String)}.
      */
     @Deprecated
@@ -202,20 +204,21 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     public static InternetAddress StringToAddress(String strAddress, String charset) throws AddressException, UnsupportedEncodingException {
         return stringToAddress(strAddress, charset);
     }
-    
+
     /**
      * Converts a string to {@link InternetAddress}.
+     *
      * @param strAddress Address string
-     * @param charset Charset (encoding) to be used
+     * @param charset    Charset (encoding) to be used
      * @return {@link InternetAddress} for the specified string
-     * @throws AddressException Malformed address
+     * @throws AddressException             Malformed address
      * @throws UnsupportedEncodingException Unsupported encoding
      * @since TODO
      */
-    public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress, 
-            @NonNull String charset) throws AddressException, UnsupportedEncodingException {
+    public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress,
+                                                           @NonNull String charset) throws AddressException, UnsupportedEncodingException {
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
-        if(!m.matches()) {
+        if (!m.matches()) {
             return new InternetAddress(strAddress);
         }
 
@@ -226,7 +229,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
     /**
      * @deprecated as of 1.286
-     *      Use {@link #descriptor()} to obtain the current instance.
+     * Use {@link #descriptor()} to obtain the current instance.
      */
     @Deprecated
     @Restricted(NoExternalUse.class)
@@ -241,7 +244,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         /**
-         * The default e-mail address suffix appended to the user name found from changelog,
+         * The default e-mail address suffix appended to the username found from changelog,
          * to send e-mails. Null if not configured.
          */
         private String defaultSuffix;
@@ -250,20 +253,24 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * Hudson's own URL, to put into the e-mail.
          *
          * @deprecated as of 1.4
-         *      Maintained in {@link JenkinsLocationConfiguration} but left here
-         *      for compatibility just in case, so as not to lose this information.
-         *      This is loaded to {@link JenkinsLocationConfiguration} via the XML file
-         *      marshaled with {@link XStream2}.
+         * Maintained in {@link JenkinsLocationConfiguration} but left here
+         * for compatibility just in case, so as not to lose this information.
+         * This is loaded to {@link JenkinsLocationConfiguration} via the XML file
+         * marshaled with {@link XStream2}.
          */
         @Deprecated
         private String hudsonUrl;
 
-        /** @deprecated as of 1.23, use {@link #authentication} */
+        /**
+         * @deprecated as of 1.23, use {@link #authentication}
+         */
         @Deprecated
         private transient String smtpAuthUsername;
 
-        
-        /** @deprecated as of 1.23, use {@link #authentication} */
+
+        /**
+         * @deprecated as of 1.23, use {@link #authentication}
+         */
         @Deprecated
         private transient Secret smtpAuthPassword;
 
@@ -274,8 +281,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * Null if not configured.
          *
          * @deprecated as of 1.4
-         *      Maintained in {@link JenkinsLocationConfiguration} but left here
-         *      for compatibility just in case, so as not to lose this information.
+         * Maintained in {@link JenkinsLocationConfiguration} but left here
+         * for compatibility just in case, so as not to lose this information.
          */
         @Deprecated
         private String adminAddress;
@@ -291,7 +298,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * which is usually <tt>localhost</tt>.
          */
         private String smtpHost;
-        
+
         /**
          * If true use SSL on port 465 (standard SMTPS) unless <code>smtpPort</code> is set.
          */
@@ -312,13 +319,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * The charset to use for the text and subject.
          */
         private String charset;
-        
+
         /**
          * Used to keep track of number test e-mails.
          */
         private static transient AtomicInteger testEmailCount = new AtomicInteger(0);
 
-        @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", 
+        @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
                 justification = "Writing to a deprecated field")
         public DescriptorImpl() {
             load();
@@ -351,11 +358,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Creates a JavaMail session.
+         *
          * @return mail session based on the underlying session parameters.
          */
         public Session createSession() {
-            return createSession(smtpHost,smtpPort,useSsl,useTls,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
+            return createSession(smtpHost, smtpPort, useSsl, useTls, getSmtpAuthUserName(), getSmtpAuthPasswordSecret());
         }
+
         private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
             final String SMTP_PORT_PROPERTY = "mail.smtp.port";
             final String SMTP_SOCKETFACTORY_PORT_PROPERTY = "mail.smtp.socketFactory.port";
@@ -366,51 +375,51 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             smtpAuthUserName = Util.fixEmptyAndTrim(smtpAuthUserName);
 
             Properties props = new Properties(System.getProperties());
-            if(smtpHost!=null) {
+            if (smtpHost != null) {
                 props.put("mail.smtp.host", smtpHost);
             }
-            if (smtpPort!=null) {
+            if (smtpPort != null) {
                 props.put(SMTP_PORT_PROPERTY, smtpPort);
             }
             if (useSsl) {
-            	/* This allows the user to override settings by setting system properties but
-            	 * also allows us to use the default SMTPs port of 465 if no port is already set.
-            	 * It would be cleaner to use smtps, but that's done by calling session.getTransport()...
-            	 * and thats done in mail sender, and it would be a bit of a hack to get it all to
-            	 * coordinate, and we can make it work through setting mail.smtp properties.
-            	 */
-            	if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
-                    String port = smtpPort==null?"465":smtpPort;
+                /* This allows the user to override settings by setting system properties but
+                 * also allows us to use the default SMTPs port of 465 if no port is already set.
+                 * It would be cleaner to use smtps, but that's done by calling session.getTransport()...
+                 * and thats done in mail sender, and it would be a bit of a hack to get it all to
+                 * coordinate, and we can make it work through setting mail.smtp properties.
+                 */
+                if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
+                    String port = smtpPort == null ? "465" : smtpPort;
                     props.put(SMTP_PORT_PROPERTY, port);
                     props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
-            	}
-            	if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY) == null) {
+                }
+                if (props.getProperty(SMTP_SSL_ENABLE_PROPERTY) == null) {
                     props.put(SMTP_SSL_ENABLE_PROPERTY, "true");
                     props.put("mail.smtp.ssl.checkserveridentity", true);
-            	}
-				props.put("mail.smtp.socketFactory.fallback", "false");
-            	if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
+                }
+                props.put("mail.smtp.socketFactory.fallback", "false");
+                if (props.getProperty("mail.smtp.ssl.checkserveridentity") == null) {
                     props.put("mail.smtp.ssl.checkserveridentity", "true");
                 }
-			}
-			if(useTls){
+            }
+            if (useTls) {
                 /* This allows the user to override settings by setting system properties and
-            	 * also allows us to use the default STARTTLS port, 587, if no port is already set.
-            	 * Only the properties included below are required to use STARTTLS and they are
-            	 * not expected to be enabled simultaneously with SSL (it will actually throw a
-            	 * "javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?"
-            	 * if SMTP server expects only TLS).
-            	 */
+                 * also allows us to use the default STARTTLS port, 587, if no port is already set.
+                 * Only the properties included below are required to use STARTTLS and they are
+                 * not expected to be enabled simultaneously with SSL (it will actually throw a
+                 * "javax.net.ssl.SSLException: Unrecognized SSL message, plaintext connection?"
+                 * if SMTP server expects only TLS).
+                 */
                 if (props.getProperty(SMTP_SOCKETFACTORY_PORT_PROPERTY) == null) {
-                    String port = smtpPort==null?"587":smtpPort;
+                    String port = smtpPort == null ? "587" : smtpPort;
                     props.put(SMTP_PORT_PROPERTY, port);
                     props.put(SMTP_SOCKETFACTORY_PORT_PROPERTY, port);
                 }
                 props.put("mail.smtp.starttls.enable", "true");
                 props.put("mail.smtp.starttls.required", "true");
             }
-            if(smtpAuthUserName!=null) {
-                props.put("mail.smtp.auth","true");
+            if (smtpAuthUserName != null) {
+                props.put("mail.smtp.auth", "true");
                 if (FIPS140.useCompliantAlgorithms()) {
                     // the authentication mechanisms can only be performed when protected by TLS/SSL
                     if (!(useSsl || useTls)) {
@@ -420,20 +429,20 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             // avoid hang by setting some timeout. 
-            props.put("mail.smtp.timeout","60000");
-            props.put("mail.smtp.connectiontimeout","60000");
+            props.put("mail.smtp.timeout", "60000");
+            props.put("mail.smtp.connectiontimeout", "60000");
 
-            return Session.getInstance(props,getAuthenticator(smtpAuthUserName,Secret.toString(smtpAuthPassword)));
+            return Session.getInstance(props, getAuthenticator(smtpAuthUserName, Secret.toString(smtpAuthPassword)));
         }
 
         private static Authenticator getAuthenticator(final String smtpAuthUserName, final String smtpAuthPassword) {
-            if(smtpAuthUserName == null) {
-            	return null;
+            if (smtpAuthUserName == null) {
+                return null;
             }
             return new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(smtpAuthUserName,smtpAuthPassword);
+                    return new PasswordAuthentication(smtpAuthUserName, smtpAuthPassword);
                 }
             };
         }
@@ -446,7 +455,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             // case of failure to databind, it gets reverted to previous value.
             // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
             SMTPAuthentication current = this.authentication;
-            
+
             try (BulkChange b = new BulkChange(this)) {
                 this.authentication = null;
                 req.bindJSON(this, json);
@@ -455,12 +464,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 this.authentication = current;
                 throw new FormException("Failed to apply configuration", e, null);
             }
-            
+
             return true;
         }
 
         private String nullify(String v) {
-            if(v!=null && v.length()==0)    v=null;
+            if (v != null && v.isEmpty()) v = null;
             return v;
         }
 
@@ -468,8 +477,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return smtpHost;
         }
 
-        
-        /** @deprecated as of 1.23, use {@link #getSmtpHost()} */
+
+        /**
+         * @deprecated as of 1.23, use {@link #getSmtpHost()}
+         */
         @Deprecated
         public String getSmtpServer() {
             return smtpHost;
@@ -477,11 +488,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Method added to pass findbugs verification when compiling against 1.642.1
+         *
          * @return The JenkinsLocationConfiguration object.
          * @throws IllegalStateException if the object is not available (e.g., Jenkins not fully initialized).
          */
         @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-            justification = "False positive. See https://sourceforge.net/p/findbugs/bugs/1411/")
+                justification = "False positive. See https://sourceforge.net/p/findbugs/bugs/1411/")
         private JenkinsLocationConfiguration getJenkinsLocationConfiguration() {
             final JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
             if (jlc == null) {
@@ -491,9 +503,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration} instead
          * @return administrator mail address
+         * @deprecated as of 1.4
+         * Use {@link JenkinsLocationConfiguration} instead
          */
         @Deprecated
         public String getAdminAddress() {
@@ -501,9 +513,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration} instead
          * @return Jenkins base URL
+         * @deprecated as of 1.4
+         * Use {@link JenkinsLocationConfiguration} instead
          */
         @Deprecated
         public String getUrl() {
@@ -512,7 +524,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         * Use {@link #authentication}
          */
         @Deprecated
         public String getSmtpAuthUserName() {
@@ -522,7 +534,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         * Use {@link #authentication}
          */
         @Deprecated
         public String getSmtpAuthPassword() {
@@ -536,7 +548,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public boolean getUseSsl() {
-        	return useSsl;
+            return useSsl;
         }
 
         public boolean getUseTls() {
@@ -544,13 +556,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public String getSmtpPort() {
-        	return smtpPort;
+            return smtpPort;
         }
 
         public String getCharset() {
-        	String c = charset;
-        	if (c == null || c.length() == 0)	c = "UTF-8";
-        	return c;
+            String c = charset;
+            if (c == null || c.isEmpty()) c = "UTF-8";
+            return c;
         }
 
         @DataBoundSetter
@@ -560,9 +572,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration} instead
          * @param hudsonUrl Jenkins base URL to set
+         * @deprecated as of 1.4
+         * Use {@link JenkinsLocationConfiguration} instead
          */
         @Deprecated
         public void setHudsonUrl(String hudsonUrl) {
@@ -570,9 +582,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * @deprecated as of 1.4
-         *      Use {@link JenkinsLocationConfiguration} instead
          * @param adminAddress Jenkins administrator mail address to set
+         * @deprecated as of 1.4
+         * Use {@link JenkinsLocationConfiguration} instead
          */
         @Deprecated
         public void setAdminAddress(String adminAddress) {
@@ -605,7 +617,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @DataBoundSetter
         public void setCharset(String charset) {
-            if (charset == null || charset.length() == 0) {
+            if (charset == null || charset.isEmpty()) {
                 charset = "UTF-8";
             }
             this.charset = Util.fixEmptyAndTrim(charset);
@@ -625,7 +637,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         * Use {@link #authentication}
          */
         @Deprecated
         public void setSmtpAuth(String userName, String password) {
@@ -637,10 +649,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @Override
-        public Publisher newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
-            Mailer m = (Mailer)super.newInstance(req, formData);
+        public Publisher newInstance(StaplerRequest2 req, @NonNull JSONObject formData) throws FormException {
+            Mailer m = (Mailer) super.newInstance(req, formData);
 
-            if(hudsonUrl==null) {
+            if (hudsonUrl == null) {
                 // if Hudson URL is not configured yet, infer some default
                 hudsonUrl = Functions.inferHudsonURL(req);
                 save();
@@ -669,16 +681,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         public FormValidation doCheckSmtpHost(@QueryParameter String value) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
-                if (Util.fixEmptyAndTrim(value)!=null)
+                if (Util.fixEmptyAndTrim(value) != null)
                     InetAddress.getByName(value);
                 return FormValidation.ok();
             } catch (UnknownHostException e) {
-                return FormValidation.error(Messages.Mailer_Unknown_Host_Name()+value);
+                return FormValidation.error(Messages.Mailer_Unknown_Host_Name() + value);
             }
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
-            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value)==null)
+            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value) == null)
                 return FormValidation.ok();
             else
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
@@ -686,18 +698,19 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Send an email to the admin address
-         * @throws IOException in case the active jenkins instance cannot be retrieved
-         * @param smtpHost name of the SMTP server to use for mail sending
-         * @param adminAddress Jenkins administrator mail address
+         *
+         * @param smtpHost       name of the SMTP server to use for mail sending
+         * @param adminAddress   Jenkins administrator mail address
          * @param authentication if set to {@code true} SMTP is used without authentication (username and password)
-         * @param username plaintext username for SMTP authentication
-         * @param password secret password for SMTP authentication
-         * @param useSsl if set to {@code true} SSL is used
-         * @param useTls if set to {@code true} TLS is used
-         * @param smtpPort port to use for SMTP transfer
-         * @param charset charset of the underlying MIME-mail message
+         * @param username       plaintext username for SMTP authentication
+         * @param password       secret password for SMTP authentication
+         * @param useSsl         if set to {@code true} SSL is used
+         * @param useTls         if set to {@code true} TLS is used
+         * @param smtpPort       port to use for SMTP transfer
+         * @param charset        charset of the underlying MIME-mail message
          * @param sendTestMailTo mail address to send test mail to
          * @return response with http status code depending on the result of the mail sending
+         * @throws IOException in case the active jenkins instance cannot be retrieved
          */
         @RequirePOST
         public FormValidation doSendTestMail(
@@ -725,10 +738,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 msg.setSentDate(new Date());
                 msg.setRecipient(Message.RecipientType.TO, stringToAddress(sendTestMailTo, charset));
 
-                Transport.send(msg);                
+                Transport.send(msg);
                 return FormValidation.ok(Messages.Mailer_EmailSentSuccessfully());
             } catch (MessagingException e) {
-                return FormValidation.errorWithMarkup("<p>"+Messages.Mailer_FailedToSendEmail()+"</p><pre>"+Util.escape(Functions.printThrowable(e))+"</pre>");
+                return FormValidation.errorWithMarkup("<p>" + Messages.Mailer_FailedToSendEmail() + "</p><pre>" + Util.escape(Functions.printThrowable(e)) + "</pre>");
             }
         }
 
@@ -767,16 +780,16 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Exported
         public String getAddress() {
-            if(hasExplicitlyConfiguredAddress()) {
+            if (hasExplicitlyConfiguredAddress()) {
                 return emailAddress;
-	        }
+            }
 
             // try the inference logic
             return MailAddressResolver.resolve(user);
         }
 
         public String getConfiguredAddress() {
-            if(hasExplicitlyConfiguredAddress()) {
+            if (hasExplicitlyConfiguredAddress()) {
                 return emailAddress;
             }
 
@@ -795,6 +808,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * This method also truncates spaces. It is highly recommended to
          * use {@link #hasExplicitlyConfiguredAddress()} method to check the
          * option's existence.
+         *
          * @return A trimmed email address. It can be null
          * @since TODO
          */
@@ -805,10 +819,11 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * Has the user configured a value explicitly (true), or is it inferred (false)?
+         *
          * @return {@code true} if there is an email address available.
          */
         public boolean hasExplicitlyConfiguredAddress() {
-            return Util.fixEmptyAndTrim(emailAddress)!=null;
+            return Util.fixEmptyAndTrim(emailAddress) != null;
         }
 
         @Extension
@@ -823,7 +838,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             }
 
             @Override
-            public UserProperty newInstance(@CheckForNull StaplerRequest2 req, JSONObject formData) throws FormException {
+            public UserProperty newInstance(@CheckForNull StaplerRequest2 req, @NonNull JSONObject formData) throws FormException {
                 return new UserProperty(req != null ? req.getParameter("email.address") : null);
             }
         }
@@ -831,9 +846,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
     /**
      * Debug probe point to be activated by the scripting console.
+     *
      * @deprecated This hack may be removed in future versions
      */
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", 
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",
             justification = "It may used for debugging purposes. We have to keep it for the sake of the binary copatibility")
     @Deprecated
     public static boolean debug = false;

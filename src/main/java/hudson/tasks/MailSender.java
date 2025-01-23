@@ -1,19 +1,19 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi,
  * Bruce Chapman, Daniel Dyer, Jean-Baptiste Quenot
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -47,6 +47,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -66,8 +67,8 @@ public class MailSender {
      * Whitespace-separated list of e-mail addresses that represent recipients.
      */
     private String recipients;
-    
-    private List<AbstractProject> includeUpstreamCommitters = new ArrayList<AbstractProject>();
+
+    private List<AbstractProject> includeUpstreamCommitters = new ArrayList<>();
 
     /**
      * If true, only the first unstable build will be reported.
@@ -78,7 +79,7 @@ public class MailSender {
      * If true, individuals will receive e-mails regarding who broke the build.
      */
     private boolean sendToIndividuals;
-    
+
     /**
      * The charset to use for the text and subject.
      */
@@ -86,13 +87,13 @@ public class MailSender {
 
 
     public MailSender(String recipients, boolean dontNotifyEveryUnstableBuild, boolean sendToIndividuals) {
-    	this(recipients, dontNotifyEveryUnstableBuild, sendToIndividuals, "UTF-8");
+        this(recipients, dontNotifyEveryUnstableBuild, sendToIndividuals, "UTF-8");
     }
 
     public MailSender(String recipients, boolean dontNotifyEveryUnstableBuild, boolean sendToIndividuals, String charset) {
-        this(recipients,dontNotifyEveryUnstableBuild,sendToIndividuals,charset, Collections.<AbstractProject>emptyList());
+        this(recipients, dontNotifyEveryUnstableBuild, sendToIndividuals, charset, Collections.emptyList());
     }
-  
+
     public MailSender(String recipients, boolean dontNotifyEveryUnstableBuild, boolean sendToIndividuals, String charset, Collection<AbstractProject> includeUpstreamCommitters) {
         this.recipients = Util.fixNull(recipients);
         this.dontNotifyEveryUnstableBuild = dontNotifyEveryUnstableBuild;
@@ -107,14 +108,14 @@ public class MailSender {
         return true;
     }
 
-    public final void run(Run<?,?> build, TaskListener listener) throws InterruptedException {
+    public final void run(Run<?, ?> build, TaskListener listener) throws InterruptedException {
         try {
             MimeMessage mail = createMail(build, listener);
             if (mail != null) {
                 // if the previous e-mail was sent for a success, this new e-mail
                 // is not a follow up
                 Run<?, ?> pb = build.getPreviousBuild();
-                if(pb!=null && pb.getResult()==Result.SUCCESS) {
+                if (pb != null && pb.getResult() == Result.SUCCESS) {
                     mail.removeHeader("In-Reply-To");
                     mail.removeHeader("References");
                 }
@@ -123,7 +124,7 @@ public class MailSender {
                 if (allRecipients != null) {
                     StringBuilder buf = new StringBuilder("Sending e-mails to:");
                     for (Address a : allRecipients) {
-                        if (a!=null) {
+                        if (a != null) {
                             buf.append(' ').append(a);
                         }
                     }
@@ -148,13 +149,13 @@ public class MailSender {
      * <p>
      * And since we are consulting the earlier result, if the previous build is still running, behave as if this were the first build.
      */
-    private Result findPreviousBuildResult(Run<?,?> b) throws InterruptedException {
+    private Result findPreviousBuildResult(Run<?, ?> b) throws InterruptedException {
         do {
-            b=b.getPreviousBuild();
+            b = b.getPreviousBuild();
             if (b == null || b.isBuilding()) {
                 return null;
             }
-        } while((b.getResult()==Result.ABORTED) || (b.getResult()==Result.NOT_BUILT));
+        } while ((b.getResult() == Result.ABORTED) || (b.getResult() == Result.NOT_BUILT));
         return b.getResult();
     }
 
@@ -163,7 +164,7 @@ public class MailSender {
         return createMail(build, listener);
     }
 
-    protected @CheckForNull MimeMessage createMail(Run<?,?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException, InterruptedException {
+    protected @CheckForNull MimeMessage createMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException, InterruptedException {
         // In case getMail was overridden elsewhere. Cannot use Util.isOverridden since it only works on public methods.
         try {
             Method m = getClass().getDeclaredMethod("getMail", AbstractBuild.class, BuildListener.class);
@@ -211,17 +212,17 @@ public class MailSender {
     private MimeMessage createBackToNormalMail(Run<?, ?> build, String subject, TaskListener listener) throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = createEmptyMail(build, listener);
 
-        msg.setSubject(getSubject(build, Messages.MailSender_BackToNormalMail_Subject(subject)),charset);
+        msg.setSubject(getSubject(build, Messages.MailSender_BackToNormalMail_Subject(subject)), charset);
         StringBuilder buf = new StringBuilder();
         appendBuildUrl(build, buf);
-        msg.setText(buf.toString(),charset);
+        msg.setText(buf.toString(), charset);
 
         return msg;
     }
 
-    private static ChangeLogSet<? extends ChangeLogSet.Entry> getChangeSet(Run<?,?> build) {
+    private static ChangeLogSet<? extends ChangeLogSet.Entry> getChangeSet(Run<?, ?> build) {
         if (build instanceof AbstractBuild) {
-            return ((AbstractBuild<?,?>) build).getChangeSet();
+            return ((AbstractBuild<?, ?>) build).getChangeSet();
         } else {
             // TODO JENKINS-24141 call getChangeSets in general
             return ChangeLogSet.createEmpty(build);
@@ -235,10 +236,10 @@ public class MailSender {
 
         Run<?, ?> prev = build.getPreviousBuild();
         boolean still = false;
-        if(prev!=null) {
-            if(prev.getResult()==Result.SUCCESS)
-                subject =Messages.MailSender_UnstableMail_ToUnStable_Subject();
-            else if(prev.getResult()==Result.UNSTABLE) {
+        if (prev != null) {
+            if (prev.getResult() == Result.SUCCESS)
+                subject = Messages.MailSender_UnstableMail_ToUnStable_Subject();
+            else if (prev.getResult() == Result.UNSTABLE) {
                 subject = Messages.MailSender_UnstableMail_StillUnstable_Subject();
                 still = true;
             }
@@ -273,7 +274,7 @@ public class MailSender {
     private MimeMessage createFailureMail(Run<?, ?> build, TaskListener listener) throws MessagingException, UnsupportedEncodingException, InterruptedException {
         MimeMessage msg = createEmptyMail(build, listener);
 
-        msg.setSubject(getSubject(build, Messages.MailSender_FailureMail_Subject()),charset);
+        msg.setSubject(getSubject(build, Messages.MailSender_FailureMail_Subject()), charset);
 
         StringBuilder buf = new StringBuilder();
         appendBuildUrl(build, buf);
@@ -286,7 +287,7 @@ public class MailSender {
             buf.append(entry.getAuthor().getFullName());
             buf.append("] ");
             String m = entry.getMsg();
-            if (m!=null) {
+            if (m != null) {
                 buf.append(m);
                 if (!m.endsWith("\n")) {
                     buf.append('\n');
@@ -322,10 +323,10 @@ public class MailSender {
                 // workspaceDir will not normally end with one;
                 // workspaceDir.toURI() will end with '/' if and only if workspaceDir.exists() at time of call
                 wsPattern = ws == null ? null : Pattern.compile("(" +
-                    Pattern.quote(ws.getRemote()) + "|" + Pattern.quote(ws.toURI().toString()) + ")[/\\\\]?([^:#\\s]*)");
+                        Pattern.quote(ws.getRemote()) + "|" + Pattern.quote(ws.toURI().toString()) + ")[/\\\\]?([^:#\\s]*)");
             }
             for (String line : lines) {
-                line = line.replace('\0',' '); // shall we replace other control code? This one is motivated by http://www.nabble.com/Problems-with-NULL-characters-in-generated-output-td25005177.html
+                line = line.replace('\0', ' '); // shall we replace other control code? This one is motivated by http://www.nabble.com/Problems-with-NULL-characters-in-generated-output-td25005177.html
                 if (wsPattern != null) {
                     // Perl: $line =~ s{$rx}{$path = $2; $path =~ s!\\\\!/!g; $workspaceUrl . $path}eg;
                     Matcher m = wsPattern.matcher(line);
@@ -348,7 +349,7 @@ public class MailSender {
             buf.append(Messages.MailSender_FailureMail_FailedToAccessBuildLog()).append("\n\n").append(Functions.printThrowable(e));
         }
 
-        msg.setText(buf.toString(),charset);
+        msg.setText(buf.toString(), charset);
 
         return msg;
     }
@@ -361,7 +362,7 @@ public class MailSender {
         // TODO: I'd like to put the URL to the page in here,
         // but how do I obtain that?
 
-        final AbstractBuild<?, ?> build = run instanceof AbstractBuild ? ((AbstractBuild<?, ?>)run) : null;
+        final AbstractBuild<?, ?> build = run instanceof AbstractBuild ? ((AbstractBuild<?, ?>) run) : null;
 
         StringTokenizer tokens = new StringTokenizer(recipients);
         while (tokens.hasMoreTokens()) {
@@ -372,12 +373,12 @@ public class MailSender {
                 // TODO 1.590+ Jenkins.getActiveInstance
                 final Jenkins jenkins = Jenkins.getInstanceOrNull();
                 if (jenkins == null) {
-                    listener.getLogger().println("Jenkins is not ready. Cannot retrieve project "+projectName);
+                    listener.getLogger().println("Jenkins is not ready. Cannot retrieve project " + projectName);
                     continue;
                 }
                 final AbstractProject up = jenkins.getItem(projectName, run.getParent(), AbstractProject.class);
-                if(up==null) {
-                    listener.getLogger().println("No such project exist: "+projectName);
+                if (up == null) {
+                    listener.getLogger().println("No such project exist: " + projectName);
                     continue;
                 }
                 messageBuilder.addRecipients(getCulpritsOfEmailList(up, build, listener));
@@ -395,7 +396,7 @@ public class MailSender {
                 messageBuilder.addRecipients(getUserEmailList(listener, build));
             }
         }
-        
+
         // set recipients after filtering out recipients that should not receive emails
         messageBuilder.setRecipientFilter(new MimeMessageBuilder.AddressFilter() {
             @Override
@@ -407,16 +408,16 @@ public class MailSender {
         MimeMessage msg = messageBuilder.buildMimeMessage();
 
         msg.addHeader("X-Jenkins-Job", run.getParent().getFullName());
-        
+
         final Result result = run.getResult();
         msg.addHeader("X-Jenkins-Result", result != null ? result.toString() : "in progress");
         // http://www.faqs.org/rfcs/rfc3834.html
         msg.addHeader("Auto-submitted", "auto-generated");
 
         Run<?, ?> pb = run.getPreviousBuild();
-        if(pb!=null) {
+        if (pb != null) {
             MailMessageIdAction b = pb.getAction(MailMessageIdAction.class);
-            if(b!=null) {
+            if (b != null) {
                 MimeMessageBuilder.setInReplyTo(msg, b.messageId);
             }
         }
@@ -425,39 +426,45 @@ public class MailSender {
     }
 
     String getCulpritsOfEmailList(AbstractProject upstreamProject, AbstractBuild<?, ?> currentBuild, TaskListener listener) throws AddressException, UnsupportedEncodingException {
-        AbstractBuild<?,?> upstreamBuild = currentBuild.getUpstreamRelationshipBuild(upstreamProject);
-        AbstractBuild<?,?> previousBuild = currentBuild.getPreviousBuild();
-        AbstractBuild<?,?> previousBuildUpstreamBuild = previousBuild!=null ? previousBuild.getUpstreamRelationshipBuild(upstreamProject) : null;
-        if(previousBuild==null && upstreamBuild==null && previousBuildUpstreamBuild==null) {
-            listener.getLogger().println("Unable to compute the changesets in "+ upstreamProject +". Is the fingerprint configured?");
+        AbstractBuild<?, ?> upstreamBuild = currentBuild.getUpstreamRelationshipBuild(upstreamProject);
+        AbstractBuild<?, ?> previousBuild = currentBuild.getPreviousBuild();
+        AbstractBuild<?, ?> previousBuildUpstreamBuild = previousBuild != null ? previousBuild.getUpstreamRelationshipBuild(upstreamProject) : null;
+        if (previousBuild == null && upstreamBuild == null && previousBuildUpstreamBuild == null) {
+            listener.getLogger().println("Unable to compute the changesets in " + upstreamProject + ". Is the fingerprint configured?");
             return null;
         }
-        if(previousBuild==null || upstreamBuild==null || previousBuildUpstreamBuild==null) {
-            listener.getLogger().println("Unable to compute the changesets in "+ upstreamProject);
+        if (previousBuild == null || upstreamBuild == null || previousBuildUpstreamBuild == null) {
+            listener.getLogger().println("Unable to compute the changesets in " + upstreamProject);
             return null;
         }
-        AbstractBuild<?,?> b=previousBuildUpstreamBuild;
+        AbstractBuild<?, ?> b = previousBuildUpstreamBuild;
 
         StringBuilder culpritEmails = new StringBuilder();
         do {
             b = b.getNextBuild();
             if (b != null) {
                 String userEmails = getUserEmailList(listener, b);
-                if (culpritEmails.length() > 0) {
+                if (!culpritEmails.isEmpty()) {
                     culpritEmails.append(",");
                 }
                 culpritEmails.append(userEmails);
             }
-        } while ( b != upstreamBuild && b != null );
+        } while (b != upstreamBuild && b != null);
 
         return culpritEmails.toString();
     }
 
-    /** If set, send to known users who lack {@link Item#READ} access to the job. */
+    /**
+     * If set, send to known users who lack {@link Item#READ} access to the job.
+     */
     static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
-    /** If set, send to unknown users. */
+    /**
+     * If set, send to unknown users.
+     */
     static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
-    /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception. */
+    /**
+     * If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception.
+     */
     static /* not final */ boolean SEND_TO_UNAUTHORIZED_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNAUTHORIZED_USERS");
 
     @NonNull
@@ -466,8 +473,8 @@ public class MailSender {
         StringBuilder userEmails = new StringBuilder();
         for (User a : users) {
             String adrs = Util.fixEmpty(a.getProperty(Mailer.UserProperty.class).getAddress());
-            if(debug)
-                listener.getLogger().println("  User "+a.getId()+" -> "+adrs);
+            if (debug)
+                listener.getLogger().println("  User " + a.getId() + " -> " + adrs);
             if (adrs != null) {
                 if (Jenkins.get().isUseSecurity()) {
                     try {
@@ -475,7 +482,7 @@ public class MailSender {
                         if (!build.getACL().hasPermission(auth, Item.READ)) {
                             if (SEND_TO_USERS_WITHOUT_READ) {
                                 listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs,
-                                                                                                           build.getFullDisplayName()));
+                                        build.getFullDisplayName()));
                             } else {
                                 listener.getLogger().println(Messages.MailSender_user_without_read(adrs, build.getFullDisplayName()));
                                 continue;
@@ -497,7 +504,7 @@ public class MailSender {
                         }
                     }
                 }
-                if (userEmails.length() > 0) {
+                if (!userEmails.isEmpty()) {
                     userEmails.append(",");
                 }
                 userEmails.append(adrs);
@@ -514,8 +521,9 @@ public class MailSender {
 
     /**
      * Check whether a path (/-separated) will be archived.
+     *
      * @param build current build
-     * @param path given path, separated by {@code /}
+     * @param path  given path, separated by {@code /}
      * @return always returns {@code false} to not archive anything
      */
     protected boolean artifactMatches(String path, AbstractBuild<?, ?> build) {
@@ -524,13 +532,14 @@ public class MailSender {
 
     /**
      * Debug probe point to be activated by the scripting console.
+     *
      * @deprecated This hack may be removed in future versions
      */
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", 
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL",
             justification = "It may used for debugging purposes. We have to keep it for the sake of the binary copatibility")
     @Deprecated
     public static boolean debug = false;
 
-    private static final int MAX_LOG_LINES = Integer.getInteger(MailSender.class.getName()+".maxLogLines",250);
+    private static final int MAX_LOG_LINES = Integer.getInteger(MailSender.class.getName() + ".maxLogLines", 250);
 
 }

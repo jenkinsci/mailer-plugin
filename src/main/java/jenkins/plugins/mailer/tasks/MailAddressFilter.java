@@ -105,7 +105,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      */
     public static Set<InternetAddress> filterRecipients(Run<?,?> build, TaskListener listener, Set<InternetAddress> recipients) {
 
-        Set<InternetAddress> rcp = new LinkedHashSet<InternetAddress>();
+        Set<InternetAddress> rcp = new LinkedHashSet<>();
 
         for (InternetAddress address : recipients) {
             if (!isFilteredRecipient(address, listener, build)) {
@@ -156,7 +156,7 @@ public abstract class MailAddressFilter implements Describable<MailAddressFilter
      * @return all of the registered {@link MailAddressFilter} descriptors
      */
     public static DescriptorExtensionList<MailAddressFilter,MailAddressFilterDescriptor> all() {
-        return Jenkins.get().<MailAddressFilter, MailAddressFilterDescriptor>getDescriptorList(MailAddressFilter.class);
+        return Jenkins.get().getDescriptorList(MailAddressFilter.class);
     }
 
     public static ExtensionList<MailAddressFilter> allExtensions() {
