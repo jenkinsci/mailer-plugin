@@ -9,38 +9,40 @@ import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.util.StreamTaskListener;
+import jenkins.model.Jenkins;
+import jenkins.plugins.mailer.tasks.i18n.Messages;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
+import org.mockito.MockedStatic;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import jenkins.model.Jenkins;
-import jenkins.plugins.mailer.tasks.i18n.Messages;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import org.mockito.MockedStatic;
 
 /**
  * Test case for the {@link MailSender}
- * 
+ *
  * See also {@link MailerTest} for more tests for the mailer.
- * 
+ *
  * @author Christoph Kutzinski
  */
 @SuppressWarnings("rawtypes")
-public class MailSenderTest {
-    
+class MailSenderTest {
+
     /**
      * Tests that all culprits from the previous builds upstream build (exclusive)
      * until the current builds upstream build (inclusive) are contained in the recipients
@@ -48,7 +50,7 @@ public class MailSenderTest {
      */
     @SuppressWarnings("unchecked")
     @Test
-    public void testIncludeUpstreamCulprits() throws Exception {
+    void testIncludeUpstreamCulprits() throws Exception {
       final Jenkins jenkins = mock(Jenkins.class);
       when(jenkins.isUseSecurity()).thenReturn(false);
       try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {
@@ -111,19 +113,19 @@ public class MailSenderTest {
         assertTrue(emailList.contains("this.one.must.be.included.too@example.com"));
       }
     }
-    
+
     /**
      * Creates a previous/next relationship between the builds in the given order.
      */
     private static void createPreviousNextRelationShip(AbstractBuild... builds) {
         int max = builds.length - 1;
-        
+
         for (int i = 0; i < builds.length; i++) {
             if (i < max) {
                 when(builds[i].getNextBuild()).thenReturn(builds[i+1]);
             }
         }
-        
+
         for (int i = builds.length - 1; i >= 0; i--) {
             if (i >= 1) {
                 when(builds[i].getPreviousBuild()).thenReturn(builds[i-1]);
@@ -132,7 +134,8 @@ public class MailSenderTest {
     }
 
     @Issue("SECURITY-372")
-    @Test public void forbiddenMail() throws Exception {
+    @Test
+    void forbiddenMail() throws Exception {
       final Jenkins jenkins = mock(Jenkins.class);
       when(jenkins.isUseSecurity()).thenReturn(true);
       try (MockedStatic<Jenkins> mockedJenkins = mockStatic(Jenkins.class)) {

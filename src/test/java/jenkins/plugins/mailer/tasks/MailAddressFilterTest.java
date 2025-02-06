@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2012-2013 Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,9 +24,16 @@
 package jenkins.plugins.mailer.tasks;
 
 import hudson.ExtensionList;
-import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
 import hudson.model.Hudson;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jenkins.model.Jenkins;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,28 +42,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
-
-import jenkins.model.Jenkins;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Mudiaga Obada
  */
-public class MailAddressFilterTest {
+class MailAddressFilterTest {
 
     private Hudson jenkins;
     private AbstractBuild<?, ?> build;
     private BuildListener listener;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
 
         jenkins = Mockito.mock(Hudson.class);
         build = Mockito.mock(AbstractBuild.class);
@@ -66,7 +66,7 @@ public class MailAddressFilterTest {
 
     // Without any extension, filter should return identical set
     @Test
-    public void testIdentity() throws Exception {
+    void testIdentity() throws Exception {
 
       try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
         mocked.when(Jenkins::get).thenReturn(jenkins);
@@ -77,9 +77,9 @@ public class MailAddressFilterTest {
 
         Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
-        Assert.assertEquals(rcp.size(), filtered.size());
+        assertEquals(rcp.size(), filtered.size());
         for (InternetAddress a : rcp) {
-            Assert.assertTrue(filtered.contains(a));
+            assertTrue(filtered.contains(a));
         }
       }
 
@@ -87,7 +87,7 @@ public class MailAddressFilterTest {
 
     // With an extension, MailAddressFilter must exclude what extension filters
     @Test
-    public void testFilterExtension() throws Exception {
+    void testFilterExtension() throws Exception {
 
       try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
         mocked.when(Jenkins::get).thenReturn(jenkins);
@@ -104,9 +104,9 @@ public class MailAddressFilterTest {
 
         Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
-        Assert.assertEquals(rcp.size() - 1, filtered.size());
+        assertEquals(rcp.size() - 1, filtered.size());
 
-        Assert.assertTrue(!filtered.contains(filteredAddress));
+        assertFalse(filtered.contains(filteredAddress));
       }
 
     }
