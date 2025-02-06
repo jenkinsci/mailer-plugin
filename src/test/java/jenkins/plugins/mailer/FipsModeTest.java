@@ -14,9 +14,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RealJenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 
