@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,26 +23,36 @@
  */
 package hudson.tasks;
 
-import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlPage;
 import hudson.Functions;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Descriptor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Result;
+import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+import jakarta.mail.Address;
+import jakarta.mail.internet.InternetAddress;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.hamcrest.MatcherAssert;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Assume;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.FailureBuilder;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Email;
+import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.FakeChangeLogSCM;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -50,14 +60,9 @@ import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.UnstableBuilder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.jvnet.mock_javamail.Mailbox;
-
-import jakarta.mail.Address;
-import jakarta.mail.internet.InternetAddress;
-
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -71,17 +76,19 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class MailerTest {
+@WithJenkins
+class MailerTest {
     /** Default recipient used in tests. */
     private static final String RECIPIENT = "you <you@sun.com>";
     /** Fixed FAILURE builder. */
@@ -95,9 +102,6 @@ public class MailerTest {
     /** Change counter. */
     private static final AtomicLong COUNTER = new AtomicLong(0L);
 
-    @Rule
-    public JenkinsRule rule = new JenkinsRule();
-
     private static Mailbox getMailbox(String recipient) throws Exception {
         return Mailbox.get(new InternetAddress(recipient));
     }
@@ -108,13 +112,13 @@ public class MailerTest {
         return inbox;
     }
 
-    private TestProject create(boolean notifyEveryUnstableBuild, boolean sendToIndividuals) throws Exception {
+    private TestProject create(JenkinsRule rule, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) throws Exception {
         Mailer m = new Mailer(RECIPIENT, notifyEveryUnstableBuild, sendToIndividuals);
-        return new TestProject(m);
+        return new TestProject(rule, m);
     }
 
     @Test
-    public void testFixEmptyAndTrimOne() throws Exception {
+    void testFixEmptyAndTrimOne(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost("smtp.host");
         d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
@@ -134,7 +138,7 @@ public class MailerTest {
     }
 
     @Test
-    public void testFixEmptyAndTrimTwo() throws Exception {
+    void testFixEmptyAndTrimTwo(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost("   smtp.host   ");
         d.setAuthentication(new SMTPAuthentication("   user   ", Secret.fromString("pass")));
@@ -154,7 +158,7 @@ public class MailerTest {
     }
 
     @Test
-    public void testFixEmptyAndTrimThree() throws Exception {
+    void testFixEmptyAndTrimThree(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost("");
         d.setAuthentication(new SMTPAuthentication("", Secret.fromString("pass")));
@@ -174,7 +178,7 @@ public class MailerTest {
     }
 
     @Test
-    public void testFixEmptyAndTrimFour() throws Exception {
+    void testFixEmptyAndTrimFour(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost(null);
         d.setAuthentication(new SMTPAuthentication(null, Secret.fromString("pass")));
@@ -195,12 +199,12 @@ public class MailerTest {
 
     @Issue("JENKINS-1566")
     @Test
-    public void testSenderAddress() throws Exception {
+    void testSenderAddress(JenkinsRule rule) throws Exception {
         // intentionally give the whole thin in a double quote
         JenkinsLocationConfiguration.get().setAdminAddress("\"me <me@sun.com>\"");
 
         // create a project to simulate a build failure
-        TestProject project = create(false, false).failure().buildAndCheck(1);
+        TestProject project = create(rule, false, false).failure().buildAndCheck(1);
 
         // build it and check sender address
         Mailbox yourInbox = getMailbox(RECIPIENT);
@@ -211,15 +215,15 @@ public class MailerTest {
 
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
     @Test
-    public void testConfigRoundtrip() throws Exception {
+    void testConfigRoundtrip(JenkinsRule rule) throws Exception {
         Mailer m = new Mailer("kk@kohsuke.org", false, true);
-        verifyRoundtrip(m);
+        verifyRoundtrip(rule, m);
 
         m = new Mailer("", true, false);
-        verifyRoundtrip(m);
+        verifyRoundtrip(rule, m);
     }
 
-    private void verifyRoundtrip(Mailer before) throws Exception {
+    private void verifyRoundtrip(JenkinsRule rule, Mailer before) throws Exception {
         FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(before);
         rule.submit(rule.createWebClient().getPage(p,"configure").getFormByName("config"));
@@ -229,7 +233,7 @@ public class MailerTest {
     }
 
     @Test
-    public void testGlobalConfigRoundtrip() throws Exception {
+    void testGlobalConfigRoundtrip(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
         d.setDefaultSuffix("default-suffix");
@@ -244,7 +248,7 @@ public class MailerTest {
         assertEquals("default-suffix",d.getDefaultSuffix());
         assertEquals("smtp.host",d.getSmtpHost());
         assertEquals("1025",d.getSmtpPort());
-        assertEquals(true,d.getUseSsl());
+        assertTrue(d.getUseSsl());
         SMTPAuthentication authentication = d.getAuthentication();
         assertEquals("user",authentication.getUsername());
         assertEquals("pass",authentication.getPassword().getPlainText());
@@ -252,12 +256,12 @@ public class MailerTest {
         d.setUseSsl(false);
         d.setAuthentication(null);
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
-        assertEquals(false,d.getUseSsl());
+        assertFalse(d.getUseSsl());
         assertNull(d.getAuthentication());
     }
 
     @Test
-    public void globalConfig() throws Exception {
+    void globalConfig(JenkinsRule rule) throws Exception {
         Assume.assumeThat("TODO the form elements for email-ext have the same names", rule.getPluginManager().getPlugin("email-ext"), is(nullValue()));
 
         WebClient webClient = rule.createWebClient();
@@ -289,7 +293,7 @@ public class MailerTest {
     }
 
     @Test
-    public void authenticationFormValidation() {
+    void authenticationFormValidation(JenkinsRule rule) {
         DescriptorImpl d = Mailer.descriptor();
 
         // no authentication without TLS/SSL
@@ -299,7 +303,7 @@ public class MailerTest {
         assertThat(d.doCheckAuthentication(false, true, false), is(FormValidation.ok()));
         assertThat(d.doCheckAuthentication(false, false, true), is(FormValidation.ok()));
         assertThat(d.doCheckAuthentication(false, true, true), is(FormValidation.ok()));
-        
+
         // authentication without TLS/SSL
         assertThat(d.doCheckAuthentication(true, false, false).kind, is(FormValidation.Kind.WARNING));
 
@@ -327,29 +331,29 @@ public class MailerTest {
             }
             super.load();
         }
-    };
-    
+    }
+
     /**
      * Test {@link JenkinsLocationConfiguration} can load hudsonUrl.
      */
     @Test
-    public void testHudsonUrlCompatibility() throws Exception {
+    void testHudsonUrlCompatibility(JenkinsRule rule) throws Exception {
         // not configured.
         assertNull(new CleanJenkinsLocationConfiguration().getUrl());
-        
+
         Mailer m = new Mailer("", true, false);
         FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(m);
         WebClient wc = rule.createWebClient();
         rule.submit(wc.getPage(p,"configure").getFormByName("config"));
-        
+
         // configured via the marshaled XML file of Mailer
         assertEquals(wc.getContextPath(), new CleanJenkinsLocationConfiguration().getUrl());
     }
 
     @Test
-    public void testNotifyEveryUnstableBuild() throws Exception {
-        create(true, false).failure()
+    void testNotifyEveryUnstableBuild(JenkinsRule rule) throws Exception {
+        create(rule, true, false).failure()
             .buildAndCheck(1)
             .buildAndCheck(1)
             .unstable()
@@ -365,8 +369,8 @@ public class MailerTest {
     }
 
     @Test
-    public void testNotNotifyEveryUnstableBuild() throws Exception {
-        create(false, false)
+    void testNotNotifyEveryUnstableBuild(JenkinsRule rule) throws Exception {
+        create(rule, false, false)
             .buildAndCheck(0)
             .buildAndCheck(0)
             .unstable()
@@ -385,13 +389,13 @@ public class MailerTest {
 
     @SuppressWarnings("deprecation")
     @Test
-    public void testNotifyCulprits() throws Exception {
+    void testNotifyCulprits(JenkinsRule rule) throws Exception {
         MailSender.debug = true;
         try {
             rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
             User.get("author1").addProperty(new Mailer.UserProperty(AUTHOR1));
             User.get("author2").addProperty(new Mailer.UserProperty(AUTHOR2));
-            TestProject project = create(true, true).buildAndCheck(0);
+            TestProject project = create(rule, true, true).buildAndCheck(0);
             // Changes with no problems
             project.commit("author1").clearBuild().check(0, 0, 0);
             // Commit causes build to be unstable
@@ -409,8 +413,8 @@ public class MailerTest {
 
     @Issue("JENKINS-40224")
     @Test
-    public void testMessageText() throws Exception {
-        create(true, false)
+    void testMessageText(JenkinsRule rule) throws Exception {
+        create(rule, true, false)
             .failure()
             .buildAndCheckContent()
             .unstable()
@@ -421,11 +425,11 @@ public class MailerTest {
 
     @Issue("JENKINS-37812")
     @Test
-    public void testFailureSendMessage() throws Exception {
+    void testFailureSendMessage(JenkinsRule rule) throws Exception {
         DumbSlave node = rule.createSlave();
         Mailer m = new MailerDisconnecting(rule, node, RECIPIENT, true, false);
 
-        new TestProject(m)
+        new TestProject(rule, m)
                 .withNode(node)
                 .failure()
                 .buildAndCheckSending();
@@ -433,7 +437,7 @@ public class MailerTest {
 
     @Issue("JENKINS-37812")
     @Test
-    public void testPipelineCompatibility() throws Exception {
+    void testPipelineCompatibility(JenkinsRule rule) throws Exception {
         WorkflowJob p = rule.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(
                 "node {\n"
@@ -452,20 +456,20 @@ public class MailerTest {
     @Issue("JENKINS-55109")
     @Test
     @LocalData
-    public void testMigrateOldData() {
+    void testMigrateOldData(JenkinsRule rule) {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
-        assertNotNull("Mailer can not be found", descriptor);
-        assertEquals(String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()), "olduser", descriptor.getAuthentication().getUsername());
-        assertEquals(String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()), "UTF-8", descriptor.getCharset());
-        assertEquals(String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()), "@mydomain.com", descriptor.getDefaultSuffix());
-        assertEquals(String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()), "noreplay@mydomain.com", descriptor.getReplyToAddress());
-        assertEquals(String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()), "old.data.smtp.host", descriptor.getSmtpHost());
-        assertEquals(String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()), "808080", descriptor.getSmtpPort());
-        assertTrue("SSL should be used", descriptor.getUseSsl());
+        assertNotNull(descriptor, "Mailer can not be found");
+        assertEquals("olduser", descriptor.getAuthentication().getUsername(), String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()));
+        assertEquals("UTF-8", descriptor.getCharset(), String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()));
+        assertEquals("@mydomain.com", descriptor.getDefaultSuffix(), String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()));
+        assertEquals("noreplay@mydomain.com", descriptor.getReplyToAddress(), String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()));
+        assertEquals("old.data.smtp.host", descriptor.getSmtpHost(), String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()));
+        assertEquals("808080", descriptor.getSmtpPort(), String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()));
+        assertTrue(descriptor.getUseSsl(), "SSL should be used");
     }
 
     @Test
-    public void managePermissionShouldAccessGlobalConfig() {
+    void managePermissionShouldAccessGlobalConfig(JenkinsRule rule) {
         final String USER = "user";
         final String MANAGER = "manager";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
@@ -487,14 +491,14 @@ public class MailerTest {
             Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
             Optional<Descriptor> found =
                     descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
-            assertTrue("Global configuration should be accessible to MANAGE users", found.isPresent());
+            assertTrue(found.isPresent(), "Global configuration should be accessible to MANAGE users");
         }
     }
 
 
     @Test
     @Issue("SECURITY-2163")
-    public void doCheckSmtpServerShouldThrowExceptionForUserWithoutManagePermissions() {
+    void doCheckSmtpServerShouldThrowExceptionForUserWithoutManagePermissions(JenkinsRule rule) {
         final String USER = "user";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
@@ -503,15 +507,16 @@ public class MailerTest {
         final String expectedErrorMessage = "user is missing the Overall/Administer permission";
 
         try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
-            RuntimeException runtimeException = assertThrows(expectedErrorMessage, RuntimeException.class,
-                    () -> Mailer.descriptor().doCheckSmtpHost("domain.com"));
+            RuntimeException runtimeException = assertThrows(RuntimeException.class,
+                    () -> Mailer.descriptor().doCheckSmtpHost("domain.com"),
+                    expectedErrorMessage);
             MatcherAssert.assertThat(runtimeException.getMessage(), containsString(expectedErrorMessage));
         }
     }
 
     @Test
     @Issue("SECURITY-2163")
-    public void doCheckSmtpServerShouldNotThrowForUserWithManagePermissions() {
+    void doCheckSmtpServerShouldNotThrowForUserWithManagePermissions(JenkinsRule rule) {
         final String MANAGER = "manage";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
@@ -524,10 +529,12 @@ public class MailerTest {
     }
 
     private final class TestProject {
+        private final JenkinsRule rule;
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
 
-        TestProject(Mailer m) throws Exception {
+        TestProject(JenkinsRule rule, Mailer m) throws Exception {
+            this.rule = rule;
             project = rule.createFreeStyleProject();
             project.setScm(scm);
             project.getPublishersList().add(m);
@@ -567,7 +574,7 @@ public class MailerTest {
             for (String recipient : mailboxesToClear) {
                 getEmptyMailbox(recipient);
             }
-            return new TestBuild(project.scheduleBuild2(0).get());
+            return new TestBuild(rule, project.scheduleBuild2(0).get());
         }
 
         TestBuild clearBuild() throws Exception {
@@ -597,17 +604,19 @@ public class MailerTest {
     }
 
     private final class TestBuild {
+        private final JenkinsRule rule;
         private final FreeStyleBuild build;
         private final String log;
 
-        TestBuild(FreeStyleBuild build) throws Exception {
+        TestBuild(JenkinsRule rule, FreeStyleBuild build) throws Exception {
+            this.rule = rule;
             this.build = build;
             this.log = rule.getLog(build);
         }
 
         TestBuild check(int expectedSize, String recipient) throws Exception {
             final Mailbox inbox = getMailbox(recipient);
-            assertEquals(log, expectedSize, inbox.size());
+            assertEquals(expectedSize, inbox.size(), log);
             return this;
         }
 

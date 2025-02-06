@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2012-2013 Kohsuke Kawaguchi, Red Hat, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,39 +23,39 @@
  */
 package hudson.tasks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import hudson.ExtensionList;
+import hudson.model.Hudson;
+import hudson.model.User;
+import jenkins.model.Jenkins;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Bug;
+import org.mockito.MockedStatic;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import hudson.ExtensionList;
-import hudson.model.Hudson;
-import hudson.model.User;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import jenkins.model.Jenkins;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.jvnet.hudson.test.Bug;
-import org.mockito.MockedStatic;
 
 /**
  * @author Kohsuke Kawaguchi, ogondza
  */
-public class MailAddressResolverTest {
+class MailAddressResolverTest {
 
     private User user;
     private Jenkins jenkins;
     private Mailer.DescriptorImpl descriptor;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
 
         jenkins = mock(Hudson.class);
 
@@ -67,7 +67,7 @@ public class MailAddressResolverTest {
     }
 
     @Test
-    public void nameAlreadyIsAnAddress() throws Exception {
+    void nameAlreadyIsAnAddress() throws Exception {
 
       try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
         mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
@@ -76,7 +76,7 @@ public class MailAddressResolverTest {
     }
 
     @Test
-    public void nameContainsAddress() throws Exception {
+    void nameContainsAddress() throws Exception {
 
       try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
         mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
@@ -86,7 +86,7 @@ public class MailAddressResolverTest {
 
     @Bug(5164)
     @Test
-    public void test5164() throws Exception {
+    void test5164() throws Exception {
 
       try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
         mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
@@ -116,7 +116,7 @@ public class MailAddressResolverTest {
     }
 
     @Test
-    public void doNotResolveWhenUsingFastResolution() throws Exception {
+    void doNotResolveWhenUsingFastResolution() throws Exception {
       try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class);
            MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
         mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
@@ -134,7 +134,7 @@ public class MailAddressResolverTest {
     }
 
     @Test
-    public void doResolveWhenNotUsingFastResolution() throws Exception {
+    void doResolveWhenNotUsingFastResolution() throws Exception {
 
       try (MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
         final MailAddressResolver resolver = mockResolver();
@@ -151,16 +151,16 @@ public class MailAddressResolverTest {
     }
 
     @Test
-    public void doResolveWhenUsingExplicitlUserEmail() {
+    void doResolveWhenUsingExplicitlUserEmail() {
         final String testEmail = "very_strange_email@test.case";
-        
+
         when(user.getProperty(Mailer.UserProperty.class)).thenReturn(
             new Mailer.UserProperty(testEmail));
-        
+
         final String address = MailAddressResolver.resolveFast(user);
         assertEquals(testEmail, address);
     }
-    
+
     private MailAddressResolver mockResolver() {
 
         return mock(MailAddressResolver.class);
