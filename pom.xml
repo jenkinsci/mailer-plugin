@@ -7,13 +7,13 @@
     <version>5.12</version>
     <relativePath />
   </parent>
-  
+
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
   <version>${changelist}</version>
   <name>Jenkins Mailer Plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-  
+
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -24,10 +24,9 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
+    <jenkins.baseline>2.504</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
@@ -35,7 +34,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4669.v0e99c712a_30e</version>
+        <version>4710.v016f0a_07e34d</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
