@@ -389,7 +389,9 @@ public class MailSender {
 
         if (build != null) {
             for (AbstractProject project : includeUpstreamCommitters) {
-                messageBuilder.addRecipients(getCulpritsOfEmailList(project, build, listener));
+                String culprits = getCulpritsOfEmailList(project, build, listener);
+                if(culprits != null)
+                    messageBuilder.addRecipients(culprits);
             }
             if (sendToIndividuals) {
                 messageBuilder.addRecipients(getUserEmailList(listener, build));
