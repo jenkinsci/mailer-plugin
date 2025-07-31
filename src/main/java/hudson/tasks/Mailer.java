@@ -45,7 +45,6 @@ import hudson.util.Secret;
 import hudson.util.XStream2;
 
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -717,7 +716,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 msg.setSubject(Messages.Mailer_TestMail_Subject(testEmailCount.incrementAndGet()), charset);
                 msg.setText(Messages.Mailer_TestMail_Content(testEmailCount.get(), Jenkins.get().getDisplayName()), charset);
                 msg.setFrom(stringToAddress(adminAddress, charset));
-                if (StringUtils.isNotBlank(replyToAddress)) {
+                if (replyToAddress != null && !replyToAddress.isBlank()) {
                     msg.setReplyTo(new Address[]{stringToAddress(replyToAddress, charset)});
                 }
                 msg.setSentDate(new Date());

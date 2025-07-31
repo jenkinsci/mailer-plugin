@@ -29,7 +29,6 @@ import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -201,7 +200,7 @@ public class MimeMessageBuilder {
         setJenkinsInstanceIdent(msg);
 
         msg.setContent("", contentType());
-        if (StringUtils.isNotBlank(from)) {
+        if (from != null && !from.isBlank()) {
             msg.setFrom(toNormalizedAddress(from));
         }
         msg.setSentDate(new Date());
@@ -286,7 +285,7 @@ public class MimeMessageBuilder {
 
     private List<InternetAddress> toNormalizedAddresses(String addresses) throws UnsupportedEncodingException {
         final List<InternetAddress> list = new LinkedList<>();
-        if (StringUtils.isNotBlank(addresses)) {
+        if (addresses != null && !addresses.isBlank()) {
             StringTokenizer tokens = new StringTokenizer(addresses, " \t\n\r\f,");
             while (tokens.hasMoreTokens()) {
                 String addressToken = tokens.nextToken();
