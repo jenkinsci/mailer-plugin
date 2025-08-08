@@ -480,14 +480,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @return The JenkinsLocationConfiguration object.
          * @throws IllegalStateException if the object is not available (e.g., Jenkins not fully initialized).
          */
-        @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-            justification = "False positive. See https://sourceforge.net/p/findbugs/bugs/1411/")
         private JenkinsLocationConfiguration getJenkinsLocationConfiguration() {
-            final JenkinsLocationConfiguration jlc = JenkinsLocationConfiguration.get();
-            if (jlc == null) {
-                throw new IllegalStateException("JenkinsLocationConfiguration not available");
-            }
-            return jlc;
+            return JenkinsLocationConfiguration.get();
         }
 
         /**
