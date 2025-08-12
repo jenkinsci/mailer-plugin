@@ -7,13 +7,13 @@
     <version>5.19</version>
     <relativePath />
   </parent>
-  
+
   <artifactId>mailer</artifactId>
   <packaging>hpi</packaging>
   <version>${changelist}</version>
   <name>Jenkins Mailer Plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-  
+
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -24,10 +24,9 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.baseline>2.504</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
@@ -35,7 +34,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3814.v9563d972079a_</version>
+        <version>5015.vb_52d36583443</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -102,9 +101,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jvnet.mock-javamail</groupId>
+      <groupId>io.jenkins.lib</groupId>
       <artifactId>mock-javamail</artifactId>
-      <version>2.2</version>
+      <version>2.3</version>
       <scope>test</scope>
       <exclusions>
         <!-- Provided by jakarta-activation-api plugin -->

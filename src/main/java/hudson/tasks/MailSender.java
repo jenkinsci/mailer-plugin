@@ -34,9 +34,9 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.mailer.tasks.MailAddressFilter;
 import jenkins.plugins.mailer.tasks.MimeMessageBuilder;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -389,7 +389,10 @@ public class MailSender {
 
         if (build != null) {
             for (AbstractProject project : includeUpstreamCommitters) {
-                messageBuilder.addRecipients(getCulpritsOfEmailList(project, build, listener));
+                String culprits = getCulpritsOfEmailList(project, build, listener);
+                if(culprits != null) {
+                    messageBuilder.addRecipients(culprits);
+                }
             }
             if (sendToIndividuals) {
                 messageBuilder.addRecipients(getUserEmailList(listener, build));
@@ -457,7 +460,7 @@ public class MailSender {
     static /* not final */ boolean SEND_TO_USERS_WITHOUT_READ = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_USERS_WITHOUT_READ");
     /** If set, send to unknown users. */
     static /* not final */ boolean SEND_TO_UNKNOWN_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNKNOWN_USERS");
-    /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate()} fails with a security-related exception. */
+    /** If set, send to unauthorized users. Unauthorized users are users where {@link User#impersonate2()} fails with a security-related exception. */
     static /* not final */ boolean SEND_TO_UNAUTHORIZED_USERS = Boolean.getBoolean(MailSender.class.getName() + ".SEND_TO_UNAUTHORIZED_USERS");
 
     @NonNull
@@ -471,8 +474,8 @@ public class MailSender {
             if (adrs != null) {
                 if (Jenkins.get().isUseSecurity()) {
                     try {
-                        Authentication auth = a.impersonate();
-                        if (!build.getACL().hasPermission(auth, Item.READ)) {
+                        Authentication auth = a.impersonate2();
+                        if (!build.getACL().hasPermission2(auth, Item.READ)) {
                             if (SEND_TO_USERS_WITHOUT_READ) {
                                 listener.getLogger().println(Messages.MailSender_warning_user_without_read(adrs,
                                                                                                            build.getFullDisplayName()));
