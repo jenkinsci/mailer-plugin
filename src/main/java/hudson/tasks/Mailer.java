@@ -475,22 +475,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * Method added to pass findbugs verification when compiling against 1.642.1
-         * @return The JenkinsLocationConfiguration object.
-         * @throws IllegalStateException if the object is not available (e.g., Jenkins not fully initialized).
-         */
-        private JenkinsLocationConfiguration getJenkinsLocationConfiguration() {
-            return JenkinsLocationConfiguration.get();
-        }
-
-        /**
          * @deprecated as of 1.4
          *      Use {@link JenkinsLocationConfiguration} instead
          * @return administrator mail address
          */
         @Deprecated
         public String getAdminAddress() {
-            return getJenkinsLocationConfiguration().getAdminAddress();
+            return JenkinsLocationConfiguration.get().getAdminAddress();
         }
 
         /**
@@ -500,7 +491,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         @Deprecated
         public String getUrl() {
-            return getJenkinsLocationConfiguration().getUrl();
+            return JenkinsLocationConfiguration.get().getUrl();
         }
 
         /**
@@ -559,7 +550,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         @Deprecated
         public void setHudsonUrl(String hudsonUrl) {
-            getJenkinsLocationConfiguration().setUrl(hudsonUrl);
+            JenkinsLocationConfiguration.get().setUrl(hudsonUrl);
         }
 
         /**
@@ -569,7 +560,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         @Deprecated
         public void setAdminAddress(String adminAddress) {
-            getJenkinsLocationConfiguration().setAdminAddress(adminAddress);
+            JenkinsLocationConfiguration.get().setAdminAddress(adminAddress);
         }
 
         @DataBoundSetter
