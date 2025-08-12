@@ -43,13 +43,11 @@ import jakarta.mail.Address;
 import jakarta.mail.internet.InternetAddress;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.hamcrest.MatcherAssert;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.FailureBuilder;
@@ -75,7 +73,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -83,6 +80,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -128,13 +126,13 @@ class MailerTest {
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
-        assertEquals("smtp.host",d.getSmtpHost());
+        assertEquals("smtp.host", d.getSmtpHost());
         SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user",authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
-        assertEquals("1025",d.getSmtpPort());
-        assertEquals("foo@bar.com",d.getReplyToAddress());
-        assertEquals("UTF-8",d.getCharset());
+        assertEquals("user", authentication.getUsername());
+        assertEquals("pass", authentication.getPassword().getPlainText());
+        assertEquals("1025", d.getSmtpPort());
+        assertEquals("foo@bar.com", d.getReplyToAddress());
+        assertEquals("UTF-8", d.getCharset());
     }
 
     @Test
@@ -148,13 +146,13 @@ class MailerTest {
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
-        assertEquals("smtp.host",d.getSmtpHost());
+        assertEquals("smtp.host", d.getSmtpHost());
         SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user",authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
-        assertEquals("1025",d.getSmtpPort());
-        assertEquals("foo@bar.com",d.getReplyToAddress());
-        assertEquals("UTF-8",d.getCharset());
+        assertEquals("user", authentication.getUsername());
+        assertEquals("pass", authentication.getPassword().getPlainText());
+        assertEquals("1025", d.getSmtpPort());
+        assertEquals("foo@bar.com", d.getReplyToAddress());
+        assertEquals("UTF-8", d.getCharset());
     }
 
     @Test
@@ -171,10 +169,10 @@ class MailerTest {
         assertNull(d.getSmtpHost());
         SMTPAuthentication authentication = d.getAuthentication();
         assertNull(authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("pass", authentication.getPassword().getPlainText());
         assertNull(d.getSmtpPort());
         assertNull(d.getReplyToAddress());
-        assertEquals("UTF-8",d.getCharset());
+        assertEquals("UTF-8", d.getCharset());
     }
 
     @Test
@@ -191,10 +189,10 @@ class MailerTest {
         assertNull(d.getSmtpHost());
         SMTPAuthentication authentication = d.getAuthentication();
         assertNull(authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("pass", authentication.getPassword().getPlainText());
         assertNull(d.getSmtpPort());
         assertNull(d.getReplyToAddress());
-        assertEquals("UTF-8",d.getCharset());
+        assertEquals("UTF-8", d.getCharset());
     }
 
     @Issue("JENKINS-1566")
@@ -209,8 +207,8 @@ class MailerTest {
         // build it and check sender address
         Mailbox yourInbox = getMailbox(RECIPIENT);
         Address[] senders = yourInbox.get(0).getFrom();
-        assertEquals(1,senders.length);
-        assertEquals("me <me@sun.com>",senders[0].toString());
+        assertEquals(1, senders.length);
+        assertEquals("me <me@sun.com>", senders[0].toString());
     }
 
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
@@ -226,10 +224,10 @@ class MailerTest {
     private void verifyRoundtrip(JenkinsRule rule, Mailer before) throws Exception {
         FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(before);
-        rule.submit(rule.createWebClient().getPage(p,"configure").getFormByName("config"));
+        rule.submit(rule.createWebClient().getPage(p, "configure").getFormByName("config"));
         Mailer after = p.getPublishersList().get(Mailer.class);
-        assertNotSame(before,after);
-        rule.assertEqualBeans(before,after,"recipients,dontNotifyEveryUnstableBuild,sendToIndividuals");
+        assertNotSame(before, after);
+        rule.assertEqualBeans(before, after, "recipients,dontNotifyEveryUnstableBuild,sendToIndividuals");
     }
 
     @Test
@@ -245,13 +243,13 @@ class MailerTest {
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("admin@me", JenkinsLocationConfiguration.get().getAdminAddress());
-        assertEquals("default-suffix",d.getDefaultSuffix());
-        assertEquals("smtp.host",d.getSmtpHost());
-        assertEquals("1025",d.getSmtpPort());
+        assertEquals("default-suffix", d.getDefaultSuffix());
+        assertEquals("smtp.host", d.getSmtpHost());
+        assertEquals("1025", d.getSmtpPort());
         assertTrue(d.getUseSsl());
         SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user",authentication.getUsername());
-        assertEquals("pass",authentication.getPassword().getPlainText());
+        assertEquals("user", authentication.getUsername());
+        assertEquals("pass", authentication.getPassword().getPlainText());
 
         d.setUseSsl(false);
         d.setAuthentication(null);
@@ -262,7 +260,7 @@ class MailerTest {
 
     @Test
     void globalConfig(JenkinsRule rule) throws Exception {
-        Assume.assumeThat("TODO the form elements for email-ext have the same names", rule.getPluginManager().getPlugin("email-ext"), is(nullValue()));
+        assumeTrue(rule.getPluginManager().getPlugin("email-ext") == null, "TODO the form elements for email-ext have the same names");
 
         WebClient webClient = rule.createWebClient();
         HtmlPage cp = webClient.goTo("configure");
@@ -345,7 +343,7 @@ class MailerTest {
         FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(m);
         WebClient wc = rule.createWebClient();
-        rule.submit(wc.getPage(p,"configure").getFormByName("config"));
+        rule.submit(wc.getPage(p, "configure").getFormByName("config"));
 
         // configured via the marshaled XML file of Mailer
         assertEquals(wc.getContextPath(), new CleanJenkinsLocationConfiguration().getUrl());
@@ -484,7 +482,7 @@ class MailerTest {
 
         try (ACLContext c = ACL.as(User.getById(USER, true))) {
             Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
-            MatcherAssert.assertThat("Global configuration should not be accessible to READ users", descriptors, is(empty()));
+            assertThat("Global configuration should not be accessible to READ users", descriptors, is(empty()));
         }
 
         try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
@@ -494,7 +492,6 @@ class MailerTest {
             assertTrue(found.isPresent(), "Global configuration should be accessible to MANAGE users");
         }
     }
-
 
     @Test
     @Issue("SECURITY-2163")
@@ -510,7 +507,7 @@ class MailerTest {
             RuntimeException runtimeException = assertThrows(RuntimeException.class,
                     () -> Mailer.descriptor().doCheckSmtpHost("domain.com"),
                     expectedErrorMessage);
-            MatcherAssert.assertThat(runtimeException.getMessage(), containsString(expectedErrorMessage));
+            assertThat(runtimeException.getMessage(), containsString(expectedErrorMessage));
         }
     }
 
@@ -528,7 +525,7 @@ class MailerTest {
         }
     }
 
-    private final class TestProject {
+    private static final class TestProject {
         private final JenkinsRule rule;
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
         private final FreeStyleProject project;
@@ -603,7 +600,7 @@ class MailerTest {
         }
     }
 
-    private final class TestBuild {
+    private static final class TestBuild {
         private final JenkinsRule rule;
         private final FreeStyleBuild build;
         private final String log;
@@ -638,8 +635,8 @@ class MailerTest {
     }
 
     private static final class MailerDisconnecting extends Mailer {
-        private transient final JenkinsRule rule;
-        private transient final DumbSlave node;
+        private final transient JenkinsRule rule;
+        private final transient DumbSlave node;
 
         private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
             super(recipients, notifyEveryUnstableBuild, sendToIndividuals);
@@ -648,7 +645,7 @@ class MailerTest {
         }
 
         @Override
-        public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
             try {
                 rule.disconnectSlave(node);
             } catch (Exception e) {
@@ -679,6 +676,5 @@ class MailerTest {
                 return authentication;
             }
         }
-
     }
 }

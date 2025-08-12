@@ -56,71 +56,61 @@ class MailAddressFilterTest {
     private BuildListener listener;
 
     @BeforeEach
-    void setUp() throws Exception {
-
+    void setUp() {
         jenkins = Mockito.mock(Hudson.class);
         build = Mockito.mock(AbstractBuild.class);
         listener = Mockito.mock(BuildListener.class);
-
     }
 
     // Without any extension, filter should return identical set
     @Test
     void testIdentity() throws Exception {
+        try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
+            mocked.when(Jenkins::get).thenReturn(jenkins);
 
-      try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
-        mocked.when(Jenkins::get).thenReturn(jenkins);
+            Set<InternetAddress> rcp = getRecipients();
 
-        Set<InternetAddress> rcp = getRecipients();
+            configure(Collections.emptyList());
 
-        configure(Collections.<MailAddressFilter> emptyList());
+            Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
-        Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
-
-        assertEquals(rcp.size(), filtered.size());
-        for (InternetAddress a : rcp) {
-            assertTrue(filtered.contains(a));
+            assertEquals(rcp.size(), filtered.size());
+            for (InternetAddress a : rcp) {
+                assertTrue(filtered.contains(a));
+            }
         }
-      }
-
     }
 
     // With an extension, MailAddressFilter must exclude what extension filters
     @Test
     void testFilterExtension() throws Exception {
+        try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
+            mocked.when(Jenkins::get).thenReturn(jenkins);
 
-      try (MockedStatic<Jenkins> mocked = Mockito.mockStatic(Jenkins.class)) {
-        mocked.when(Jenkins::get).thenReturn(jenkins);
+            InternetAddress filteredAddress = new InternetAddress("systemUser@example.com");
 
-        InternetAddress filteredAddress = new InternetAddress("systemUser@example.com");
+            Set<InternetAddress> rcp = getRecipients();
+            rcp.add(filteredAddress);
 
-        Set<InternetAddress> rcp = getRecipients();
-        rcp.add(filteredAddress);
+            MailAddressFilter filter = Mockito.mock(MailAddressFilter.class);
+            Mockito.when(filter.shouldFilter(build, listener, filteredAddress)).thenReturn(true);
 
-        MailAddressFilter filter = Mockito.mock(MailAddressFilter.class);
-        Mockito.when(filter.shouldFilter(build, listener, filteredAddress)).thenReturn(true);
+            configure(List.of(filter));
 
-        configure(Arrays.asList(filter));
+            Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
 
-        Set<InternetAddress> filtered = MailAddressFilter.filterRecipients(build, listener, rcp);
+            assertEquals(rcp.size() - 1, filtered.size());
 
-        assertEquals(rcp.size() - 1, filtered.size());
-
-        assertFalse(filtered.contains(filteredAddress));
-      }
-
+            assertFalse(filtered.contains(filteredAddress));
+        }
     }
 
     private Set<InternetAddress> getRecipients() throws AddressException {
-
-        InternetAddress addr[] = InternetAddress.parse("user1, user2@local, user2@example.com", false);
-
-        return new HashSet<InternetAddress>(Arrays.asList(addr));
-
+        InternetAddress[] addr = InternetAddress.parse("user1, user2@local, user2@example.com", false);
+        return new HashSet<>(Arrays.asList(addr));
     }
 
-    private void configure(List<MailAddressFilter> filters) throws Exception {
-
+    private void configure(List<MailAddressFilter> filters) {
         Mockito.when(jenkins.getExtensionList(MailAddressFilter.class)).thenReturn(new MockExtensionList(jenkins, filters));
     }
 
@@ -129,17 +119,13 @@ class MailAddressFilterTest {
         private List<MailAddressFilter> extensions;
 
         public MockExtensionList(final Jenkins jenkins, List<MailAddressFilter> filters) {
-
             super(jenkins, MailAddressFilter.class);
-
             extensions = Collections.unmodifiableList(filters);
         }
 
         @Override
         public Iterator<MailAddressFilter> iterator() {
-
             return extensions.iterator();
         }
     }
-
 }

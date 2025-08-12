@@ -109,10 +109,12 @@ class MimeMessageBuilderTest {
         message.saveChanges();
 
         StringWriter sw = new StringWriter();
-        ((MimeMultipart)message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
-        assertEquals("Content-Type: text/html; charset=UTF-8\n"
-                + "Content-Transfer-Encoding: quoted-printable\n\n"
-                + "Synth=C3=A8se",
+        ((MimeMultipart) message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
+        assertEquals("""
+                        Content-Type: text/html; charset=UTF-8
+                        Content-Transfer-Encoding: quoted-printable
+                        
+                        Synth=C3=A8se""",
                 sw.toString().replaceAll("\r\n?", "\n"));
     }
 
@@ -128,10 +130,12 @@ class MimeMessageBuilderTest {
         message.saveChanges();
 
         StringWriter sw = new StringWriter();
-        ((MimeMultipart)message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
-        assertEquals("Content-Type: text/html; charset=ISO-8859-1\n"
-                + "Content-Transfer-Encoding: quoted-printable\n\n"
-                + "Synth=E8se",
+        ((MimeMultipart) message.getContent()).getBodyPart(0).writeTo(new WriterOutputStream(sw));
+        assertEquals("""
+                        Content-Type: text/html; charset=ISO-8859-1
+                        Content-Transfer-Encoding: quoted-printable
+                        
+                        Synth=E8se""",
                 sw.toString().replaceAll("\r\n?", "\n"));
     }
 
@@ -153,7 +157,7 @@ class MimeMessageBuilderTest {
         assertEquals(1, mailbox.getNewMessageCount());
         Message message = mailbox.get(0);
         assertEquals("Hello", message.getSubject());
-        assertEquals("Testing email", ((MimeMultipart)message.getContent()).getBodyPart(0).getContent().toString());
+        assertEquals("Testing email", ((MimeMultipart) message.getContent()).getBodyPart(0).getContent().toString());
     }
 
     @Test
@@ -193,5 +197,4 @@ class MimeMessageBuilderTest {
         assertEquals(Y, recipients[1].toString());
         assertEquals(Z, recipients[2].toString());
     }
-
 }

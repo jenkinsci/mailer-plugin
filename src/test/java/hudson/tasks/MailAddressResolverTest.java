@@ -29,7 +29,7 @@ import hudson.model.User;
 import jenkins.model.Jenkins;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.mockito.MockedStatic;
 
 import java.util.Arrays;
@@ -55,8 +55,7 @@ class MailAddressResolverTest {
     private Mailer.DescriptorImpl descriptor;
 
     @BeforeEach
-    void setUp() throws Exception {
-
+    void setUp() {
         jenkins = mock(Hudson.class);
 
         user = mock(User.class);
@@ -67,41 +66,37 @@ class MailAddressResolverTest {
     }
 
     @Test
-    void nameAlreadyIsAnAddress() throws Exception {
-
-      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
-        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
-        validateUserPropertyAddress("user@example.com", "user@example.com", "");
-      }
+    void nameAlreadyIsAnAddress() {
+        try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+            mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
+            validateUserPropertyAddress("user@example.com", "user@example.com", "");
+        }
     }
 
     @Test
-    void nameContainsAddress() throws Exception {
-
-      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
-        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
-        validateUserPropertyAddress("user@example.com", "User Name <user@example.com>", "");
-      }
+    void nameContainsAddress() {
+        try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+            mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
+            validateUserPropertyAddress("user@example.com", "User Name <user@example.com>", "");
+        }
     }
 
-    @Bug(5164)
+    @Issue("JENKINS-5164")
     @Test
-    void test5164() throws Exception {
-
-      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
-        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
-        validateUserPropertyAddress("user@example.com", "DOMAIN\\user", "@example.com");
-      }
+    void test5164() {
+        try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class)) {
+            mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
+            validateUserPropertyAddress("user@example.com", "DOMAIN\\user", "@example.com");
+        }
     }
 
     private void validateUserPropertyAddress(
             String address, String username, String suffix
-    ) throws Exception {
-
+    ) {
         when(descriptor.getDefaultSuffix()).thenReturn(suffix);
 
         when(user.getFullName()).thenReturn(username);
-        when(user.getId()).thenReturn(username.replace('\\','_'));
+        when(user.getId()).thenReturn(username.replace('\\', '_'));
 
         String a = new UserPropertyMock(user, null).getConfiguredAddress();
         assertEquals(address, a);
@@ -116,53 +111,51 @@ class MailAddressResolverTest {
     }
 
     @Test
-    void doNotResolveWhenUsingFastResolution() throws Exception {
-      try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class);
-           MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
-        mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
+    void doNotResolveWhenUsingFastResolution() {
+        try (MockedStatic<Mailer> mockedMailer = mockStatic(Mailer.class);
+             MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
+            mockedMailer.when(Mailer::descriptor).thenReturn(descriptor);
 
-        final MailAddressResolver resolver = mockResolver();
+            final MailAddressResolver resolver = mockResolver();
 
-        configure(mockedExtensionList, resolver);
+            configure(mockedExtensionList, resolver);
 
-        final String address = MailAddressResolver.resolveFast(user);
+            final String address = MailAddressResolver.resolveFast(user);
 
-        verify(resolver, never()).findMailAddressFor(user);
+            verify(resolver, never()).findMailAddressFor(user);
 
-        assertNull(address);
-      }
+            assertNull(address);
+        }
     }
 
     @Test
-    void doResolveWhenNotUsingFastResolution() throws Exception {
+    void doResolveWhenNotUsingFastResolution() {
+        try (MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
+            final MailAddressResolver resolver = mockResolver();
+            when(resolver.findMailAddressFor(user)).thenReturn("a@b.c");
 
-      try (MockedStatic<ExtensionList> mockedExtensionList = mockStatic(ExtensionList.class)) {
-        final MailAddressResolver resolver = mockResolver();
-        when(resolver.findMailAddressFor(user)).thenReturn("a@b.c");
+            configure(mockedExtensionList, resolver);
 
-        configure(mockedExtensionList, resolver);
+            final String address = MailAddressResolver.resolve(user);
 
-        final String address = MailAddressResolver.resolve(user);
+            verify(resolver, times(1)).findMailAddressFor(user);
 
-        verify(resolver, times(1)).findMailAddressFor(user);
-
-        assertEquals("a@b.c", address);
-      }
+            assertEquals("a@b.c", address);
+        }
     }
 
     @Test
-    void doResolveWhenUsingExplicitlUserEmail() {
+    void doResolveWhenUsingExplicitUserEmail() {
         final String testEmail = "very_strange_email@test.case";
 
         when(user.getProperty(Mailer.UserProperty.class)).thenReturn(
-            new Mailer.UserProperty(testEmail));
+                new Mailer.UserProperty(testEmail));
 
         final String address = MailAddressResolver.resolveFast(user);
         assertEquals(testEmail, address);
     }
 
     private MailAddressResolver mockResolver() {
-
         return mock(MailAddressResolver.class);
     }
 
