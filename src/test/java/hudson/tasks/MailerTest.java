@@ -111,7 +111,7 @@ class MailerTest {
     }
 
     private TestProject create(JenkinsRule rule, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) throws Exception {
-        Mailer m = new Mailer(RECIPIENT, notifyEveryUnstableBuild, sendToIndividuals);
+        Mailer m = new Mailer(RECIPIENT, notifyEveryUnstableBuild, sendToIndividuals, false, null);
         return new TestProject(rule, m);
     }
 
@@ -214,10 +214,10 @@ class MailerTest {
     @Email("http://www.nabble.com/email-recipients-disappear-from-freestyle-job-config-on-save-to25479293.html")
     @Test
     void testConfigRoundtrip(JenkinsRule rule) throws Exception {
-        Mailer m = new Mailer("kk@kohsuke.org", false, true);
+        Mailer m = new Mailer("kk@kohsuke.org", false, true, false, null);
         verifyRoundtrip(rule, m);
 
-        m = new Mailer("", true, false);
+        m = new Mailer("", true, false, false, null);
         verifyRoundtrip(rule, m);
     }
 
@@ -339,7 +339,7 @@ class MailerTest {
         // not configured.
         assertNull(new CleanJenkinsLocationConfiguration().getUrl());
 
-        Mailer m = new Mailer("", true, false);
+        Mailer m = new Mailer("", true, false, false, null);
         FreeStyleProject p = rule.createFreeStyleProject();
         p.getPublishersList().add(m);
         WebClient wc = rule.createWebClient();
@@ -639,7 +639,7 @@ class MailerTest {
         private final transient DumbSlave node;
 
         private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
-            super(recipients, notifyEveryUnstableBuild, sendToIndividuals);
+            super(recipients, notifyEveryUnstableBuild, sendToIndividuals, false, null);
             this.rule = rule;
             this.node = node;
         }

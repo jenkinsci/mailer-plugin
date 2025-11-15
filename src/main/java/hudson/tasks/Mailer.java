@@ -112,6 +112,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      */
     public boolean sendToIndividuals;
 
+    public boolean useDynamicRecipients;
+    public String dynamicRecipientsVar;
+
     /**
      * Default Constructor.
      * 
@@ -126,10 +129,12 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      * @param sendToIndividuals if {@code true} mails are sent to individual committers
      */
     @DataBoundConstructor
-    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+    public Mailer(String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals, boolean useDynamicRecipients, String dynamicRecipientsVar) {
         this.recipients = recipients;
         this.dontNotifyEveryUnstableBuild = !notifyEveryUnstableBuild;
         this.sendToIndividuals = sendToIndividuals;
+        this.useDynamicRecipients=useDynamicRecipients;
+        this.dynamicRecipientsVar=dynamicRecipientsVar;
     }
 
     @Override
@@ -145,8 +150,27 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             listener.getLogger().println("Running mailer");
         // substitute build parameters
         EnvVars env = build.getEnvironment(listener);
-        String recip = env.expand(recipients);
+        String recip;
 
+        if (useDynamicRecipients) {
+            listener.getLogger().println("[Mailer] Using dynamic recipients from environment variable.");
+            String varName = env.expand(this.dynamicRecipientsVar);
+            if (varName == null || varName.trim().isEmpty()) {
+                listener.getLogger().println("[Mailer] 'Use dynamic recipients' is checked, but no variable name was specified. No emails will be sent.");
+                recip = "";
+            } else {
+                String dynamicRecipientsValue = env.get(varName);
+                if (dynamicRecipientsValue == null || dynamicRecipientsValue.trim().isEmpty()) {
+                    listener.getLogger().println("[Mailer] 'Use dynamic recipients' is checked, but the variable '" + varName + "' is not set or is empty. No emails will be sent.");
+                    recip = "";
+                } else {
+                    recip = env.expand(dynamicRecipientsValue);
+                    listener.getLogger().println("[Mailer] Dynamic recipients list (after expansion) set to: " + recip);
+                }
+            }
+        } else {
+            recip = env.expand(recipients);
+        }
         new MailSender(recip, dontNotifyEveryUnstableBuild, sendToIndividuals, descriptor().getCharset()) {
             /** Check whether a path (/-separated) will be archived. */
             @Override

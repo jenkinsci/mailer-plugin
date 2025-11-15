@@ -27,6 +27,12 @@ THE SOFTWARE.
   <f:entry field="recipients" title="${%Recipients}" description="${%description}">
     <f:textbox />
   </f:entry>
+  <f:entry field="useDynamicRecipients" title="">
+    <f:checkbox title="${%Use dynamic recipients from environment variable?}" />
+  </f:entry>
+  <f:entry field="dynamicRecipientsVar" title="${%Environment Variable Name}">
+    <f:textbox />
+  </f:entry>
   <f:entry field="notifyEveryUnstableBuild" title="">
     <f:checkbox title="${%Send e-mail for every unstable build}" default="true" />
   </f:entry>
