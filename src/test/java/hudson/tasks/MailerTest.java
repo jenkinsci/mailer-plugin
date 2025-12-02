@@ -48,6 +48,7 @@ import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Email;
 import org.jvnet.hudson.test.FailureBuilder;
@@ -102,6 +103,12 @@ class MailerTest {
 
     private static Mailbox getMailbox(String recipient) throws Exception {
         return Mailbox.get(new InternetAddress(recipient));
+    }
+
+    @BeforeAll
+    static void enableManagePermission() {
+        // TODO remove when baseline contains https://github.com/jenkinsci/jenkins/pull/23873
+        Jenkins.MANAGE.setEnabled(true);
     }
 
     private static Mailbox getEmptyMailbox(String recipient) throws Exception {
@@ -501,7 +508,7 @@ class MailerTest {
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
                 .grant(Jenkins.READ).everywhere().to(USER)
         );
-        final String expectedErrorMessage = "user is missing the Overall/Administer permission";
+        final String expectedErrorMessage = "user is missing the Overall/Manage permission";
 
         try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
             RuntimeException runtimeException = assertThrows(RuntimeException.class,
