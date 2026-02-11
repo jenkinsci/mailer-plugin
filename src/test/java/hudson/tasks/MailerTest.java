@@ -23,26 +23,26 @@
  */
 package hudson.tasks;
 
-import hudson.Functions;
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Descriptor;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.Result;
-import hudson.model.User;
-import hudson.security.ACL;
-import hudson.security.ACLContext;
-import hudson.slaves.DumbSlave;
-import hudson.tasks.Mailer.DescriptorImpl;
-import hudson.util.FormValidation;
-import hudson.util.Secret;
-import jakarta.mail.Address;
-import jakarta.mail.internet.InternetAddress;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -63,25 +63,27 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.jvnet.mock_javamail.Mailbox;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import hudson.Functions;
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Descriptor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Result;
+import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
+import hudson.slaves.DumbSlave;
+import hudson.tasks.Mailer.DescriptorImpl;
+import hudson.util.FormValidation;
+import hudson.util.Secret;
+import jakarta.mail.Address;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -107,7 +109,8 @@ class MailerTest {
 
     @BeforeAll
     static void enableManagePermission() {
-        // TODO remove when baseline contains https://github.com/jenkinsci/jenkins/pull/23873
+        // TODO remove when baseline contains
+        // https://github.com/jenkinsci/jenkins/pull/23873
         Jenkins.MANAGE.setEnabled(true);
     }
 
@@ -117,7 +120,8 @@ class MailerTest {
         return inbox;
     }
 
-    private TestProject create(JenkinsRule rule, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) throws Exception {
+    private TestProject create(JenkinsRule rule, boolean notifyEveryUnstableBuild, boolean sendToIndividuals)
+            throws Exception {
         Mailer m = new Mailer(RECIPIENT, notifyEveryUnstableBuild, sendToIndividuals);
         return new TestProject(rule, m);
     }
@@ -267,7 +271,8 @@ class MailerTest {
 
     @Test
     void globalConfig(JenkinsRule rule) throws Exception {
-        assumeTrue(rule.getPluginManager().getPlugin("email-ext") == null, "TODO the form elements for email-ext have the same names");
+        assumeTrue(rule.getPluginManager().getPlugin("email-ext") == null,
+                "TODO the form elements for email-ext have the same names");
 
         WebClient webClient = rule.createWebClient();
         HtmlPage cp = webClient.goTo("configure");
@@ -359,37 +364,37 @@ class MailerTest {
     @Test
     void testNotifyEveryUnstableBuild(JenkinsRule rule) throws Exception {
         create(rule, true, false).failure()
-            .buildAndCheck(1)
-            .buildAndCheck(1)
-            .unstable()
-            .buildAndCheck(1)
-            .buildAndCheck(1)
-            .success()
-            .buildAndCheck(1) /* back to normal mail. */
-            .buildAndCheck(0)
-            .unstable()
-            .buildAndCheck(1)
-            .failure()
-            .buildAndCheck(1);
+                .buildAndCheck(1)
+                .buildAndCheck(1)
+                .unstable()
+                .buildAndCheck(1)
+                .buildAndCheck(1)
+                .success()
+                .buildAndCheck(1) /* back to normal mail. */
+                .buildAndCheck(0)
+                .unstable()
+                .buildAndCheck(1)
+                .failure()
+                .buildAndCheck(1);
     }
 
     @Test
     void testNotNotifyEveryUnstableBuild(JenkinsRule rule) throws Exception {
         create(rule, false, false)
-            .buildAndCheck(0)
-            .buildAndCheck(0)
-            .unstable()
-            .buildAndCheck(1)
-            .buildAndCheck(0)
-            .success()
-            .buildAndCheck(1) /* back to normal mail. */
-            .buildAndCheck(0)
-            .unstable()
-            .buildAndCheck(1)
-            .buildAndCheck(0)
-            .failure()
-            .buildAndCheck(1)
-            .buildAndCheck(1);
+                .buildAndCheck(0)
+                .buildAndCheck(0)
+                .unstable()
+                .buildAndCheck(1)
+                .buildAndCheck(0)
+                .success()
+                .buildAndCheck(1) /* back to normal mail. */
+                .buildAndCheck(0)
+                .unstable()
+                .buildAndCheck(1)
+                .buildAndCheck(0)
+                .failure()
+                .buildAndCheck(1)
+                .buildAndCheck(1);
     }
 
     @SuppressWarnings("deprecation")
@@ -420,12 +425,12 @@ class MailerTest {
     @Test
     void testMessageText(JenkinsRule rule) throws Exception {
         create(rule, true, false)
-            .failure()
-            .buildAndCheckContent()
-            .unstable()
-            .buildAndCheckContent()
-            .success()
-            .buildAndCheckContent();
+                .failure()
+                .buildAndCheckContent()
+                .unstable()
+                .buildAndCheckContent()
+                .success()
+                .buildAndCheckContent();
     }
 
     @Issue("JENKINS-37812")
@@ -448,7 +453,8 @@ class MailerTest {
                 "node {\n"
                         + "    catchError {error 'oops'}\n"
                         + "    step([$class: 'Mailer', recipients: '" + RECIPIENT + "'])\n"
-                        + "}", true));
+                        + "}",
+                true));
 
         Mailbox inbox = getMailbox(RECIPIENT);
         inbox.clear();
@@ -464,12 +470,22 @@ class MailerTest {
     void testMigrateOldData(JenkinsRule rule) {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
         assertNotNull(descriptor, "Mailer can not be found");
-        assertEquals("olduser", descriptor.getAuthentication().getUsername(), String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()));
-        assertEquals("UTF-8", descriptor.getCharset(), String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()));
-        assertEquals("@mydomain.com", descriptor.getDefaultSuffix(), String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()));
-        assertEquals("noreplay@mydomain.com", descriptor.getReplyToAddress(), String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()));
-        assertEquals("old.data.smtp.host", descriptor.getSmtpHost(), String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host", descriptor.getSmtpHost()));
-        assertEquals("808080", descriptor.getSmtpPort(), String.format("SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()));
+        assertEquals("olduser", descriptor.getAuthentication().getUsername(),
+                String.format("Authentication did not migrate properly. Username expected %s but received %s",
+                        "olduser", descriptor.getAuthentication().getUsername()));
+        assertEquals("UTF-8", descriptor.getCharset(), String.format(
+                "Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()));
+        assertEquals("@mydomain.com", descriptor.getDefaultSuffix(),
+                String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com",
+                        descriptor.getDefaultSuffix()));
+        assertEquals("noreplay@mydomain.com", descriptor.getReplyToAddress(),
+                String.format("ReplayTo address did not migrate properly. Expected %s but received %s",
+                        "noreplay@mydomain.com", descriptor.getReplyToAddress()));
+        assertEquals("old.data.smtp.host", descriptor.getSmtpHost(),
+                String.format("SMTP host did not migrate properly. Expected %s but received %s", "old.data.smtp.host",
+                        descriptor.getSmtpHost()));
+        assertEquals("808080", descriptor.getSmtpPort(), String.format(
+                "SMTP port did not migrate properly. Expected %s but received %s", "808080", descriptor.getSmtpPort()));
         assertTrue(descriptor.getUseSsl(), "SSL should be used");
     }
 
@@ -479,13 +495,12 @@ class MailerTest {
         final String MANAGER = "manager";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
-                                                   // Read access
-                                                   .grant(Jenkins.READ).everywhere().to(USER)
+                // Read access
+                .grant(Jenkins.READ).everywhere().to(USER)
 
-                                                   // Read and Manage
-                                                   .grant(Jenkins.READ).everywhere().to(MANAGER)
-                                                   .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
-        );
+                // Read and Manage
+                .grant(Jenkins.READ).everywhere().to(MANAGER)
+                .grant(Jenkins.MANAGE).everywhere().to(MANAGER));
 
         try (ACLContext c = ACL.as(User.getById(USER, true))) {
             Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
@@ -494,8 +509,8 @@ class MailerTest {
 
         try (ACLContext c = ACL.as(User.getById(MANAGER, true))) {
             Collection<Descriptor> descriptors = Functions.getSortedDescriptorsForGlobalConfigUnclassified();
-            Optional<Descriptor> found =
-                    descriptors.stream().filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
+            Optional<Descriptor> found = descriptors.stream()
+                    .filter(descriptor -> descriptor instanceof Mailer.DescriptorImpl).findFirst();
             assertTrue(found.isPresent(), "Global configuration should be accessible to MANAGE users");
         }
     }
@@ -506,8 +521,7 @@ class MailerTest {
         final String USER = "user";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
-                .grant(Jenkins.READ).everywhere().to(USER)
-        );
+                .grant(Jenkins.READ).everywhere().to(USER));
         final String expectedErrorMessage = "user is missing the Overall/Manage permission";
 
         try (ACLContext ignored = ACL.as(User.getById(USER, true))) {
@@ -524,12 +538,21 @@ class MailerTest {
         final String MANAGER = "manage";
         rule.jenkins.setSecurityRealm(rule.createDummySecurityRealm());
         rule.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
-                .grant(Jenkins.MANAGE).everywhere().to(MANAGER)
-        );
+                .grant(Jenkins.MANAGE).everywhere().to(MANAGER));
 
         try (ACLContext ignored = ACL.as(User.getById(MANAGER, true))) {
             Mailer.descriptor().doCheckSmtpHost("domain.com");
         }
+    }
+
+    @Test
+    @Issue("JENKINS-68961")
+    public void emptyAddressShouldFailGracefully() {
+        AddressException ex = assertThrows(
+                AddressException.class,
+                () -> Mailer.stringToAddress("", "UTF-8"));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("empty"));
     }
 
     private static final class TestProject {
@@ -629,7 +652,8 @@ class MailerTest {
         }
 
         void checkContent() throws Exception {
-            String expectedInMessage = String.format("<%sjob/%s/%d/display/redirect>\n\n", rule.getURL(), this.build.getProject().getName(), this.build.getNumber());
+            String expectedInMessage = String.format("<%sjob/%s/%d/display/redirect>\n\n", rule.getURL(),
+                    this.build.getProject().getName(), this.build.getNumber());
             String emailContent = getMailbox(RECIPIENT).get(0).getContent().toString();
             assertThat(emailContent, containsString(expectedInMessage));
         }
@@ -645,14 +669,16 @@ class MailerTest {
         private final transient JenkinsRule rule;
         private final transient DumbSlave node;
 
-        private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients, boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
+        private MailerDisconnecting(JenkinsRule rule, DumbSlave node, String recipients,
+                boolean notifyEveryUnstableBuild, boolean sendToIndividuals) {
             super(recipients, notifyEveryUnstableBuild, sendToIndividuals);
             this.rule = rule;
             this.node = node;
         }
 
         @Override
-        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+                throws InterruptedException, IOException {
             try {
                 rule.disconnectSlave(node);
             } catch (Exception e) {
