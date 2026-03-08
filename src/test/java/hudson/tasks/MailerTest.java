@@ -23,6 +23,9 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -298,24 +301,32 @@ class MailerTest {
     }
 
     @Test
-    void authenticationFormValidation(JenkinsRule rule) {
+    void authenticationFormValidation(JenkinsRule rule) throws Descriptor.FormException {
         DescriptorImpl d = Mailer.descriptor();
+        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(
+                CredentialsScope.GLOBAL,
+                null,
+                "Test user",
+                "user",
+                "pass"
+        );
+        String id = credentials.getId();
 
         // no authentication without TLS/SSL
-        assertThat(d.doCheckAuthentication(false, false, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, false, false), is(FormValidation.ok()));
 
         // no authentication with TLS / SSL combos
-        assertThat(d.doCheckAuthentication(false, true, false), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(false, false, true), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(false, true, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, true, true), is(FormValidation.ok()));
 
         // authentication without TLS/SSL
-        assertThat(d.doCheckAuthentication(true, false, false).kind, is(FormValidation.Kind.WARNING));
+        assertThat(d.doCheckAuthentication(id, false, false).kind, is(FormValidation.Kind.WARNING));
 
         // authentication with TSL / SSL combos
-        assertThat(d.doCheckAuthentication(true, true, false), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(true, false, true), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(true, true, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, true, true), is(FormValidation.ok()));
     }
 
     /**

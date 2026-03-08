@@ -26,7 +26,6 @@ package hudson.tasks;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
-import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -42,7 +41,6 @@ import hudson.Launcher;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
-import java.util.UUID;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import jenkins.security.FIPS140;
 import hudson.security.Permission;
