@@ -34,10 +34,11 @@ THE SOFTWARE.
     </f:entry>
     <f:advanced>
 
-      <f:entry title="${%SMTP Credentials}" field="credentialsId">
-        <c:select />
-      </f:entry>
-
+      <f:optionalBlock title="${%Use SMTP Authentication}" field="authentication" checked="${instance.credentialsId!=null}">
+        <f:entry title="${%SMTP Credentials}" field="credentialsId">
+          <c:select />
+        </f:entry>
+      </f:optionalBlock>
       <f:entry title="${%Use SSL}" field="useSsl">
         <f:checkbox />
       </f:entry>

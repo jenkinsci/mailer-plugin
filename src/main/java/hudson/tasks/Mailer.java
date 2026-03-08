@@ -24,6 +24,11 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -37,6 +42,7 @@ import hudson.Launcher;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.model.*;
+import java.util.UUID;
 import jenkins.plugins.mailer.tasks.i18n.Messages;
 import jenkins.security.FIPS140;
 import hudson.security.Permission;
@@ -742,12 +748,80 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * Migrates old authentication configurations to credentials.
          */
-        private Object readResolve() {
+        private Object readResolve() throws FormException, IOException {
             // Migrate from old smtpAuthUsername/smtpAuthPassword to SMTPAuthentication
             if (smtpAuthPassword != null && authentication == null) {
                 authentication = new SMTPAuthentication(smtpAuthUsername, smtpAuthPassword);
             }
+            if (credentialsId == null && authentication != null) {
+                credentialsId = migrateToCredentials(authentication);
+                if (credentialsId != null) {
+                    authentication = null;
+                    save();
+                }
+            }
             return this;
+        }
+
+        @CheckForNull
+        private String migrateToCredentials(@NonNull SMTPAuthentication auth) throws FormException {
+            Jenkins j = Jenkins.getInstanceOrNull();
+            if (j == null) {
+                LOGGER.warning("Cannot migrate SMTP authentication to credentials: Jenkins is not ready yet.");
+                return null;
+            }
+
+            String username = Util.fixNull(auth.getUsername());
+            String password = Secret.toString(auth.getPassword());
+
+            String id = findExistingCredential(username, password);
+            if (id != null) {
+                LOGGER.info("Reusing existing credential: " + id);
+                return id;
+            }
+
+            UsernamePasswordCredentialsImpl migratedCredentials = new UsernamePasswordCredentialsImpl(
+                    CredentialsScope.GLOBAL,
+                    null,
+                    "Migrated from Mailer SMTP authentication",
+                    username,
+                    password
+            );
+            id = migratedCredentials.getId();
+
+            for (CredentialsStore store : CredentialsProvider.lookupStores(j)) {
+                try {
+                    if (store.hasPermission(CredentialsProvider.CREATE)
+                            && store.addCredentials(Domain.global(), migratedCredentials)) {
+                        LOGGER.info("Migrated Mailer SMTP authentication to Jenkins credentials with ID: " + id);
+                        return id;
+                    }
+                } catch (Exception e) {
+                    LOGGER.warning("Failed to add credentials to store: " + e);
+                }
+            }
+
+            LOGGER.warning("Failed to migrate Mailer SMTP authentication to Jenkins credentials.");
+            return null;
+        }
+
+        // Before creating a new credential, checking if one already exists
+        private String findExistingCredential(String username, String password) {
+            if (username == null || password == null) {
+                return null;
+            }
+
+            return CredentialsProvider.lookupCredentialsInItemGroup(
+                    StandardUsernamePasswordCredentials.class,
+                    Jenkins.get(),
+                    ACL.SYSTEM2,
+                    Collections.emptyList()
+            ).stream()
+            .filter(c -> username.equals(c.getUsername()))
+            .filter(c -> password.equals(Secret.toString(c.getPassword())))
+            .map(StandardUsernamePasswordCredentials::getId)
+            .findFirst()
+            .orElse(null);
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
