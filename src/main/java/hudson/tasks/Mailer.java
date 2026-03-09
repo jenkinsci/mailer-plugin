@@ -280,7 +280,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         private transient Secret smtpAuthPassword;
 
         /** @deprecated use {@link #credentialsId} instead */
-        @Deprecated
         private transient SMTPAuthentication authentication;
 
         /**
@@ -560,7 +559,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @deprecated as of 1.21
          *      Use {@link #getCredentialsId()} instead
          */
-        @Deprecated
         public String getSmtpAuthUserName() {
             if (authentication != null) {
                 return authentication.getUsername();
@@ -574,7 +572,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @deprecated as of 1.21
          *      Use {@link #getCredentialsId()} instead
          */
-        @Deprecated
         public String getSmtpAuthPassword() {
             if (authentication != null) {
                 return Secret.toString(authentication.getPassword());
@@ -673,7 +670,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * @deprecated Use {@link #setCredentialsId(String)} instead
          */
-        @Deprecated
         @DataBoundSetter
         public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
             this.authentication = authentication;
@@ -681,9 +677,8 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
-         * @deprecated Use credentials plugin instead
+         * @deprecated Use {@link #getCredentialsId()} instead
          */
-        @Deprecated
         @CheckForNull
         public SMTPAuthentication getAuthentication() {
             return authentication;
@@ -746,11 +741,18 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         /**
          * Migrates old authentication configurations to credentials.
          */
-        private Object readResolve() throws FormException, IOException {
+        private Object readResolve() throws FormException {
             // Migrate from old smtpAuthUsername/smtpAuthPassword to SMTPAuthentication
             if (smtpAuthPassword != null && authentication == null) {
                 authentication = new SMTPAuthentication(smtpAuthUsername, smtpAuthPassword);
             }
+            // Migrating SMTPAuthentication to Credentials
+            migrateAuthenticationToCredentials();
+            return this;
+        }
+
+        // Package private so migration can be directly triggered by tests
+        void migrateAuthenticationToCredentials() throws FormException {
             if (credentialsId == null && authentication != null) {
                 credentialsId = migrateToCredentials(authentication);
                 if (credentialsId != null) {
@@ -758,7 +760,6 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                     save();
                 }
             }
-            return this;
         }
 
         @CheckForNull
@@ -769,8 +770,13 @@ public class Mailer extends Notifier implements SimpleBuildStep {
                 return null;
             }
 
-            String username = Util.fixNull(auth.getUsername());
+            String username = Util.fixEmpty(auth.getUsername());
             String password = Secret.toString(auth.getPassword());
+
+            if (username == null && password.isBlank()) {
+                LOGGER.fine("Skipping migration: both username and password are empty.");
+                return null;
+            }
 
             String id = findExistingCredential(username, password);
             if (id != null) {
@@ -805,7 +811,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         // Before creating a new credential, checking if one already exists
         private String findExistingCredential(String username, String password) {
-            if (username == null || password == null) {
+            if (username == null || password.isBlank()) {
                 return null;
             }
 

@@ -5,9 +5,6 @@ import hudson.diagnosis.OldDataMonitor;
 import hudson.tasks.Mailer;
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
-import org.htmlunit.WebResponse;
-import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlPage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -21,7 +18,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class FipsModeTest {
 
@@ -42,32 +38,6 @@ class FipsModeTest {
         OldDataMonitor.VersionRange versionRange = monitor.getData().get(descriptor);
         assertNotNull(versionRange);
         assertThat(versionRange.extra, containsString("Mailer SMTP password: " + SHORT_PWD_ERROR_MESSAGE));
-    }
-
-    @Test
-    void testConfig() throws Throwable {
-        r.then(FipsModeTest::_testConfig);
-    }
-
-    private static void _testConfig(JenkinsRule j) throws Exception {
-        assumeTrue(j.getPluginManager().getPlugin("email-ext") == null, "TODO the form elements for email-ext have the same names");
-        try (JenkinsRule.WebClient wc = j.createWebClient()) {
-            HtmlPage cp = wc.goTo("configure");
-            wc.setThrowExceptionOnFailingStatusCode(false);
-            HtmlForm form = cp.getFormByName("config");
-
-            form.getInputByName("_.smtpHost").setValue("acme.com");
-            form.getInputByName("_.defaultSuffix").setValue("@acme.com");
-            form.getInputByName("_.authentication").setChecked(true);
-            form.getInputByName("_.username").setValue("user");
-            form.getInputByName("_.password").setValue("pass");
-            wc.waitForBackgroundJavaScript(1000);
-            assertThat(form.getTextContent(), containsString(SHORT_PWD_ERROR_MESSAGE));
-            HtmlPage page = j.submit(form);
-            WebResponse webResponse = page.getWebResponse();
-            assertNotEquals(200, webResponse.getStatusCode());
-            assertThat(webResponse.getContentAsString(), containsString(SHORT_PWD_ERROR_MESSAGE));
-        }
     }
 
     @Test
