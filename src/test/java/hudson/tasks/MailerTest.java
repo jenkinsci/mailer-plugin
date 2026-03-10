@@ -50,7 +50,6 @@ import java.util.Collections;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlInput;
 import org.htmlunit.html.HtmlPage;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -267,7 +266,6 @@ class MailerTest {
         StandardUsernamePasswordCredentials credentials = createNewCredentials();
         for (CredentialsStore store : CredentialsProvider.lookupStores(rule.jenkins)) {
             if (store.hasPermission(CredentialsProvider.CREATE) && store.addCredentials(Domain.global(), credentials)) {
-                System.out.println("Added the motherfucking credential");
                 break;
             }
         }
@@ -279,12 +277,10 @@ class MailerTest {
         form.getInputByName("_.smtpHost").setValue("acme.com");
         form.getInputByName("_.defaultSuffix").setValue("@acme.com");
         form.getSelectByName("_.credentialsId").setSelectedAttribute(credentials.getId(), true);
-        System.out.println(form.getSelectByName("_.credentialsId").getSelectedOptions());
         rule.submit(form);
 
         assertEquals("acme.com", d.getSmtpHost());
         assertEquals("@acme.com", d.getDefaultSuffix());
-        System.out.println("credentials.getId(): " + credentials.getId() + " d.getCredentialsId(): " + d.getCredentialsId());
         assertEquals(credentials.getId(), d.getCredentialsId());
 
         cp = webClient.goTo("configure");
