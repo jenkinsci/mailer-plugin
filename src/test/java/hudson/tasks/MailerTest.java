@@ -318,6 +318,32 @@ class MailerTest {
         assertThat(d.doCheckAuthentication(true, true, true), is(FormValidation.ok()));
     }
 
+    @Test
+    void addressFormValidation(JenkinsRule rule) {
+        DescriptorImpl d = Mailer.descriptor();
+
+        assertThat(d.doAddressCheck("admin@example.com").kind, is(FormValidation.Kind.OK));
+        assertThat(d.doAddressCheck("FirstName LastName <user@example.com>").kind, is(FormValidation.Kind.OK));
+
+        assertThat(d.doAddressCheck("invalid <email@>").kind, is(FormValidation.Kind.ERROR));
+        assertThat(d.doAddressCheck("user@example..com").kind, is(FormValidation.Kind.ERROR));
+    }
+
+    @Test
+    void defaultSuffixFormValidation(JenkinsRule rule) {
+        DescriptorImpl d = Mailer.descriptor();
+
+        assertThat(d.doCheckDefaultSuffix("@example.com").kind, is(FormValidation.Kind.OK));
+        assertThat(d.doCheckDefaultSuffix("@acme.corp-inc").kind, is(FormValidation.Kind.OK));
+
+        assertThat(d.doCheckDefaultSuffix("").kind, is(FormValidation.Kind.OK));
+        assertThat(d.doCheckDefaultSuffix("   ").kind, is(FormValidation.Kind.OK));
+        assertThat(d.doCheckDefaultSuffix(null).kind, is(FormValidation.Kind.OK));
+
+        assertThat(d.doCheckDefaultSuffix("example.com").kind, is(FormValidation.Kind.ERROR)); // missing @
+        assertThat(d.doCheckDefaultSuffix("@@example.com").kind, is(FormValidation.Kind.ERROR));
+    }
+
     /**
      * Simulates {@link JenkinsLocationConfiguration} is not configured.
      */

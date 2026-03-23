@@ -662,7 +662,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public FormValidation doCheckDefaultSuffix(@QueryParameter String value) {
-            if (value.matches("@[A-Za-z0-9.\\-]+") || Util.fixEmptyAndTrim(value)==null)
+            if (Util.fixEmptyAndTrim(value)==null || value.matches("@[A-Za-z0-9.\\-]+"))
                 return FormValidation.ok();
             else
                 return FormValidation.error(Messages.Mailer_Suffix_Error());
