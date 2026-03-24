@@ -23,6 +23,12 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -38,9 +44,9 @@ import hudson.security.ACLContext;
 import hudson.slaves.DumbSlave;
 import hudson.tasks.Mailer.DescriptorImpl;
 import hudson.util.FormValidation;
-import hudson.util.Secret;
 import jakarta.mail.Address;
 import jakarta.mail.internet.InternetAddress;
+import java.util.Collections;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.htmlunit.html.HtmlForm;
@@ -125,8 +131,9 @@ class MailerTest {
     @Test
     void testFixEmptyAndTrimOne(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
+        StandardUsernamePasswordCredentials credentials = createNewCredentials();
         d.setSmtpHost("smtp.host");
-        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setCredentialsId(credentials.getId());
         d.setSmtpPort("1025");
         d.setReplyToAddress("foo@bar.com");
         d.setCharset("UTF-8");
@@ -134,9 +141,7 @@ class MailerTest {
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("smtp.host", d.getSmtpHost());
-        SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user", authentication.getUsername());
-        assertEquals("pass", authentication.getPassword().getPlainText());
+        assertEquals(credentials.getId(), d.getCredentialsId());
         assertEquals("1025", d.getSmtpPort());
         assertEquals("foo@bar.com", d.getReplyToAddress());
         assertEquals("UTF-8", d.getCharset());
@@ -146,7 +151,6 @@ class MailerTest {
     void testFixEmptyAndTrimTwo(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost("   smtp.host   ");
-        d.setAuthentication(new SMTPAuthentication("   user   ", Secret.fromString("pass")));
         d.setSmtpPort("   1025   ");
         d.setReplyToAddress("   foo@bar.com   ");
         d.setCharset("   UTF-8   ");
@@ -154,9 +158,6 @@ class MailerTest {
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertEquals("smtp.host", d.getSmtpHost());
-        SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user", authentication.getUsername());
-        assertEquals("pass", authentication.getPassword().getPlainText());
         assertEquals("1025", d.getSmtpPort());
         assertEquals("foo@bar.com", d.getReplyToAddress());
         assertEquals("UTF-8", d.getCharset());
@@ -166,7 +167,6 @@ class MailerTest {
     void testFixEmptyAndTrimThree(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost("");
-        d.setAuthentication(new SMTPAuthentication("", Secret.fromString("pass")));
         d.setSmtpPort("");
         d.setReplyToAddress("");
         d.setCharset("");
@@ -174,9 +174,6 @@ class MailerTest {
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertNull(d.getSmtpHost());
-        SMTPAuthentication authentication = d.getAuthentication();
-        assertNull(authentication.getUsername());
-        assertEquals("pass", authentication.getPassword().getPlainText());
         assertNull(d.getSmtpPort());
         assertNull(d.getReplyToAddress());
         assertEquals("UTF-8", d.getCharset());
@@ -186,7 +183,7 @@ class MailerTest {
     void testFixEmptyAndTrimFour(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
         d.setSmtpHost(null);
-        d.setAuthentication(new SMTPAuthentication(null, Secret.fromString("pass")));
+        d.setCredentialsId(null);
         d.setSmtpPort(null);
         d.setReplyToAddress(null);
         d.setCharset(null);
@@ -194,9 +191,7 @@ class MailerTest {
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
         assertNull(d.getSmtpHost());
-        SMTPAuthentication authentication = d.getAuthentication();
-        assertNull(authentication.getUsername());
-        assertEquals("pass", authentication.getPassword().getPlainText());
+        assertNull(d.getCredentialsId());
         assertNull(d.getSmtpPort());
         assertNull(d.getReplyToAddress());
         assertEquals("UTF-8", d.getCharset());
@@ -240,12 +235,13 @@ class MailerTest {
     @Test
     void testGlobalConfigRoundtrip(JenkinsRule rule) throws Exception {
         DescriptorImpl d = Mailer.descriptor();
+        StandardUsernamePasswordCredentials credentials = createNewCredentials();
         JenkinsLocationConfiguration.get().setAdminAddress("admin@me");
         d.setDefaultSuffix("default-suffix");
         d.setSmtpHost("smtp.host");
         d.setSmtpPort("1025");
         d.setUseSsl(true);
-        d.setAuthentication(new SMTPAuthentication("user", Secret.fromString("pass")));
+        d.setCredentialsId(credentials.getId());
 
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
 
@@ -254,20 +250,25 @@ class MailerTest {
         assertEquals("smtp.host", d.getSmtpHost());
         assertEquals("1025", d.getSmtpPort());
         assertTrue(d.getUseSsl());
-        SMTPAuthentication authentication = d.getAuthentication();
-        assertEquals("user", authentication.getUsername());
-        assertEquals("pass", authentication.getPassword().getPlainText());
+        assertEquals(credentials.getId(), d.getCredentialsId());
 
         d.setUseSsl(false);
-        d.setAuthentication(null);
+        d.setCredentialsId(null);
         rule.submit(rule.createWebClient().goTo("configure").getFormByName("config"));
         assertFalse(d.getUseSsl());
-        assertNull(d.getAuthentication());
+        assertNull(d.getCredentialsId());
     }
 
     @Test
     void globalConfig(JenkinsRule rule) throws Exception {
         assumeTrue(rule.getPluginManager().getPlugin("email-ext") == null, "TODO the form elements for email-ext have the same names");
+        DescriptorImpl d = Mailer.descriptor();
+        StandardUsernamePasswordCredentials credentials = createNewCredentials();
+        for (CredentialsStore store : CredentialsProvider.lookupStores(rule.jenkins)) {
+            if (store.hasPermission(CredentialsProvider.CREATE) && store.addCredentials(Domain.global(), credentials)) {
+                break;
+            }
+        }
 
         WebClient webClient = rule.createWebClient();
         HtmlPage cp = webClient.goTo("configure");
@@ -275,47 +276,48 @@ class MailerTest {
 
         form.getInputByName("_.smtpHost").setValue("acme.com");
         form.getInputByName("_.defaultSuffix").setValue("@acme.com");
-        form.getInputByName("_.authentication").setChecked(true);
-        form.getInputByName("_.username").setValue("user");
-        form.getInputByName("_.password").setValue("pass");
-
+        form.getSelectByName("_.credentialsId").setSelectedAttribute(credentials.getId(), true);
         rule.submit(form);
 
-        DescriptorImpl d = Mailer.descriptor();
         assertEquals("acme.com", d.getSmtpHost());
         assertEquals("@acme.com", d.getDefaultSuffix());
-        SMTPAuthentication auth = d.getAuthentication();
-        assertNotNull(auth);
-        assertEquals("user", auth.getUsername());
-        assertEquals("pass", auth.getPassword().getPlainText());
+        assertEquals(credentials.getId(), d.getCredentialsId());
 
         cp = webClient.goTo("configure");
         form = cp.getFormByName("config");
-        form.getInputByName("_.authentication").setChecked(false);
+        form.getSelectByName("_.credentialsId").setSelectedAttribute(credentials.getId(), false);
         rule.submit(form);
 
-        assertNull(d.getAuthentication());
+        assertNull(d.getCredentialsId());
     }
 
     @Test
-    void authenticationFormValidation(JenkinsRule rule) {
+    void authenticationFormValidation(JenkinsRule rule) throws Descriptor.FormException {
         DescriptorImpl d = Mailer.descriptor();
+        UsernamePasswordCredentialsImpl credentials = new UsernamePasswordCredentialsImpl(
+                CredentialsScope.GLOBAL,
+                null,
+                "Test user",
+                "user",
+                "pass"
+        );
+        String id = credentials.getId();
 
         // no authentication without TLS/SSL
-        assertThat(d.doCheckAuthentication(false, false, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, false, false), is(FormValidation.ok()));
 
         // no authentication with TLS / SSL combos
-        assertThat(d.doCheckAuthentication(false, true, false), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(false, false, true), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(false, true, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(null, true, true), is(FormValidation.ok()));
 
         // authentication without TLS/SSL
-        assertThat(d.doCheckAuthentication(true, false, false).kind, is(FormValidation.Kind.WARNING));
+        assertThat(d.doCheckAuthentication(id, false, false).kind, is(FormValidation.Kind.WARNING));
 
         // authentication with TSL / SSL combos
-        assertThat(d.doCheckAuthentication(true, true, false), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(true, false, true), is(FormValidation.ok()));
-        assertThat(d.doCheckAuthentication(true, true, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, true, false), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, false, true), is(FormValidation.ok()));
+        assertThat(d.doCheckAuthentication(id, true, true), is(FormValidation.ok()));
     }
 
     @Test
@@ -489,8 +491,13 @@ class MailerTest {
     @LocalData
     void testMigrateOldData(JenkinsRule rule) {
         Mailer.DescriptorImpl descriptor = Mailer.descriptor();
+        StandardUsernamePasswordCredentials credentials = getCredentials();
+
         assertNotNull(descriptor, "Mailer can not be found");
-        assertEquals("olduser", descriptor.getAuthentication().getUsername(), String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", descriptor.getAuthentication().getUsername()));
+        assertNull(descriptor.getAuthentication(), "Legacy authentication should've been cleared");
+        assertNotNull(credentials.getId(), "Credential ID set after migration");
+
+        assertEquals("olduser", credentials.getUsername(), String.format("Authentication did not migrate properly. Username expected %s but received %s", "olduser", credentials.getUsername()));
         assertEquals("UTF-8", descriptor.getCharset(), String.format("Charset did not migrate properly. Expected %s but received %s", "UTF-8", descriptor.getCharset()));
         assertEquals("@mydomain.com", descriptor.getDefaultSuffix(), String.format("Default suffix did not migrate properly. Expected %s but received %s", "@mydomain.com", descriptor.getDefaultSuffix()));
         assertEquals("noreplay@mydomain.com", descriptor.getReplyToAddress(), String.format("ReplayTo address did not migrate properly. Expected %s but received %s", "noreplay@mydomain.com", descriptor.getReplyToAddress()));
@@ -556,6 +563,30 @@ class MailerTest {
         try (ACLContext ignored = ACL.as(User.getById(MANAGER, true))) {
             Mailer.descriptor().doCheckSmtpHost("domain.com");
         }
+    }
+
+    private StandardUsernamePasswordCredentials createNewCredentials() throws Descriptor.FormException {
+        return new UsernamePasswordCredentialsImpl(
+                CredentialsScope.GLOBAL,
+                null,
+                "Test user",
+                "user",
+                "pass"
+        );
+    }
+
+    private StandardUsernamePasswordCredentials getCredentials() {
+        DescriptorImpl d = Mailer.descriptor();
+        String credId = d.getCredentialsId();
+        return CredentialsProvider.lookupCredentialsInItemGroup(
+                StandardUsernamePasswordCredentials.class,
+                Jenkins.get(),
+                ACL.SYSTEM2,
+                Collections.emptyList()
+        ).stream()
+         .filter(c -> c.getId().equals(credId))
+         .findFirst()
+         .orElseThrow(() -> new AssertionError("Credentials not found"));
     }
 
     private static final class TestProject {
