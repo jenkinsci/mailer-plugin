@@ -213,6 +213,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
      */
     public static @NonNull InternetAddress stringToAddress(@NonNull String strAddress, 
             @NonNull String charset) throws AddressException, UnsupportedEncodingException {
+        if (strAddress.isBlank()) {
+            throw new AddressException(
+                    "Email address must not be empty. Please configure a valid email address.");
+        }
         Matcher m = ADDRESS_PATTERN.matcher(strAddress);
         if(!m.matches()) {
             return new InternetAddress(strAddress);
