@@ -23,7 +23,8 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"
+         xmlns:f="/lib/form" xmlns:c="/lib/credentials">
   <f:section title="${%E-mail Notification}">
     <f:entry title="${%SMTP server}" field="smtpHost">
       <f:textbox checkMethod="post" />
@@ -32,9 +33,10 @@ THE SOFTWARE.
       <f:textbox />
     </f:entry>
     <f:advanced>
-
-      <f:optionalProperty title="${%Use SMTP Authentication}" field="authentication"/>
-
+      
+      <f:entry title="${%SMTP Credentials}" field="credentialsId">
+        <c:select />
+      </f:entry>
       <f:entry title="${%Use SSL}" field="useSsl">
         <f:checkbox />
       </f:entry>
@@ -55,7 +57,7 @@ THE SOFTWARE.
       <f:entry title="${%Test e-mail recipient}">
           <f:textbox name="sendTestMailTo"/>
       </f:entry>
-      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,authentication,username,password,useSsl,useTls,smtpPort,charset" />
+      <f:validateButton method="sendTestMail" title="${%Test configuration}" with="sendTestMailTo,smtpHost,adminAddress,credentialsId,useSsl,useTls,smtpPort,charset" />
     </f:optionalBlock>
   </f:section>
 </j:jelly>
