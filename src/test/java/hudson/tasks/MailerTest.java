@@ -40,6 +40,7 @@ import hudson.tasks.Mailer.DescriptorImpl;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jakarta.mail.Address;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -557,7 +558,14 @@ class MailerTest {
             Mailer.descriptor().doCheckSmtpHost("domain.com");
         }
     }
-
+    @Test
+    @Issue("JENKINS-68961")
+    public void emptyAddressShouldFailGracefully() {
+        AddressException ex = assertThrows(
+                AddressException.class,
+                () -> Mailer.stringToAddress("", "UTF-8"));
+        assertTrue(ex.getMessage().toLowerCase().contains("empty"));
+    }
     private static final class TestProject {
         private final JenkinsRule rule;
         private final FakeChangeLogSCM scm = new FakeChangeLogSCM();
