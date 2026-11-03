@@ -325,6 +325,9 @@ class MailerTest {
         assertThat(d.doAddressCheck("admin@example.com").kind, is(FormValidation.Kind.OK));
         assertThat(d.doAddressCheck("FirstName LastName <user@example.com>").kind, is(FormValidation.Kind.OK));
 
+        assertThat(d.doAddressCheck("").kind, is(FormValidation.Kind.OK));
+        assertThat(d.doAddressCheck("   ").kind, is(FormValidation.Kind.OK));
+
         assertThat(d.doAddressCheck("invalid <email@>").kind, is(FormValidation.Kind.ERROR));
         assertThat(d.doAddressCheck("user@example..com").kind, is(FormValidation.Kind.ERROR));
     }

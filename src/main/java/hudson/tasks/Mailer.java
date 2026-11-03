@@ -641,6 +641,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
+            String address = Util.fixEmptyAndTrim(value);
+            if (address == null) {
+                return FormValidation.ok();
+            }
             try {
                 new InternetAddress(value);
                 return FormValidation.ok();
