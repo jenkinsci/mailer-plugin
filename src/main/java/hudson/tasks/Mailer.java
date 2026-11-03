@@ -24,6 +24,10 @@
  */
 package hudson.tasks;
 
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -43,10 +47,18 @@ import hudson.security.Permission;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
+import hudson.util.ListBoxModel;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import hudson.security.ACL;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.AncestorInPath;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,6 +67,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Properties;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -266,7 +279,14 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         @Deprecated
         private transient Secret smtpAuthPassword;
 
-        private SMTPAuthentication authentication;
+        /** @deprecated use {@link #credentialsId} instead */
+        private transient SMTPAuthentication authentication;
+
+        /**
+         * Credentials ID for SMTP auth.
+         * This replaces the old SMTPAuthentication approach.
+         */
+        private String credentialsId;
 
         /**
          * The e-mail address that Hudson puts to "From:" field in outgoing e-mails.
@@ -349,11 +369,61 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         /**
+         * Gets the credentials ID for SMTP auth.
+         * @return credentials ID or null if not configured
+         */
+        @CheckForNull
+        public String getCredentialsId() {
+            return credentialsId;
+        }
+
+        /**
+         * Sets the credentials ID for SMTP auth.
+         * @param credentialsId the credentials ID to use
+         */
+        @DataBoundSetter
+        public void setCredentialsId(@CheckForNull String credentialsId) {
+            this.credentialsId = Util.fixEmptyAndTrim(credentialsId);
+            save();
+        }
+
+        /**
+         * Retrieves username and password from credentials store.
+         * @return array with [username, password] or [null, null] if no credentials configured
+         */
+        private String[] getCredentials() {
+            if (credentialsId == null) {
+                return new String[]{null, null};
+            }
+
+            StandardUsernamePasswordCredentials credentials = CredentialsProvider.lookupCredentialsInItemGroup(
+                    StandardUsernamePasswordCredentials.class,
+                    Jenkins.get(),
+                    ACL.SYSTEM2,
+                    Collections.emptyList()
+            ).stream()
+                    .filter(c -> c.getId().equals(credentialsId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (credentials == null) {
+                LOGGER.warning("Could not find credentials with ID: " + credentialsId);
+                return new String[]{null, null};
+            }
+
+            return new String[]{
+                    credentials.getUsername(),
+                    Secret.toString(credentials.getPassword())
+            };
+        }
+
+        /**
          * Creates a JavaMail session.
          * @return mail session based on the underlying session parameters.
          */
         public Session createSession() {
-            return createSession(smtpHost,smtpPort,useSsl,useTls,getSmtpAuthUserName(),getSmtpAuthPasswordSecret());
+            String[] creds = getCredentials();
+            return createSession(smtpHost, smtpPort, useSsl, useTls, creds[0], creds[1] != null ? Secret.fromString(creds[1]) : null);
         }
         private static Session createSession(String smtpHost, String smtpPort, boolean useSsl, boolean useTls, String smtpAuthUserName, Secret smtpAuthPassword) {
             final String SMTP_PORT_PROPERTY = "mail.smtp.port";
@@ -439,19 +509,10 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         @Override
         public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
-
-            // Nested Describable (SMTPAuthentication) is not set to null in case it is not configured.
-            // To mitigate that, it is being set to null before (so it gets set to sent value or null correctly) and, in
-            // case of failure to databind, it gets reverted to previous value.
-            // Would not be necessary by https://github.com/jenkinsci/jenkins/pull/3669
-            SMTPAuthentication current = this.authentication;
-            
             try (BulkChange b = new BulkChange(this)) {
-                this.authentication = null;
                 req.bindJSON(this, json);
                 b.commit();
             } catch (IOException e) {
-                this.authentication = current;
                 throw new FormException("Failed to apply configuration", e, null);
             }
             
@@ -496,27 +557,37 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         *      Use {@link #getCredentialsId()} instead
          */
-        @Deprecated
         public String getSmtpAuthUserName() {
-            if (authentication == null) return null;
-            return authentication.getUsername();
+            if (authentication != null) {
+                return authentication.getUsername();
+            }
+            // Try to get from credentials
+            String[] creds = getCredentials();
+            return creds[0];
         }
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         *      Use {@link #getCredentialsId()} instead
          */
-        @Deprecated
         public String getSmtpAuthPassword() {
-            if (authentication == null) return null;
-            return Secret.toString(authentication.getPassword());
+            if (authentication != null) {
+                return Secret.toString(authentication.getPassword());
+            }
+            // Try to get from credentials
+            String[] creds = getCredentials();
+            return creds[1];
         }
 
         public Secret getSmtpAuthPasswordSecret() {
-            if (authentication == null) return null;
-            return authentication.getPassword();
+            if (authentication != null) {
+                return authentication.getPassword();
+            }
+            // Try to get from credentials
+            String[] creds = getCredentials();
+            return creds[1] != null ? Secret.fromString(creds[1]) : null;
         }
 
         public boolean getUseSsl() {
@@ -596,12 +667,18 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             save();
         }
 
+        /**
+         * @deprecated Use {@link #setCredentialsId(String)} instead
+         */
         @DataBoundSetter
         public void setAuthentication(@CheckForNull SMTPAuthentication authentication) {
             this.authentication = authentication;
             save();
         }
 
+        /**
+         * @deprecated Use {@link #getCredentialsId()} instead
+         */
         @CheckForNull
         public SMTPAuthentication getAuthentication() {
             return authentication;
@@ -609,7 +686,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
 
         /**
          * @deprecated as of 1.21
-         *      Use {@link #authentication}
+         *      Use {@link #setCredentialsId(String)} instead
          */
         @Deprecated
         public void setSmtpAuth(String userName, String password) {
@@ -618,6 +695,34 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             } else {
                 this.authentication = new SMTPAuthentication(userName, Secret.fromString(password));
             }
+        }
+
+        /**
+         * Populates the credentials dropdown with available username/password credentials.
+         */
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String credentialsId) {
+            StandardListBoxModel result = new StandardListBoxModel();
+
+            if (item == null) {
+                if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                    return result.includeCurrentValue(credentialsId);
+                }
+            } else {
+                if (!item.hasPermission(Item.EXTENDED_READ) && !item.hasPermission(CredentialsProvider.USE_ITEM)) {
+                    return result.includeCurrentValue(credentialsId);
+                }
+            }
+
+            return result
+                    .includeEmptyValue()
+                    .includeMatchingAs(
+                            ACL.SYSTEM2,
+                            Jenkins.get(),
+                            StandardUsernamePasswordCredentials.class,
+                            Collections.emptyList(),
+                            CredentialsMatchers.always()
+                    )
+                    .includeCurrentValue(credentialsId);
         }
 
         @Override
@@ -633,11 +738,94 @@ public class Mailer extends Notifier implements SimpleBuildStep {
             return m;
         }
 
-        private Object readResolve() {
-            if (smtpAuthPassword != null) {
+        /**
+         * Migrates old authentication configurations to credentials.
+         */
+        private Object readResolve() throws FormException {
+            // Migrate from old smtpAuthUsername/smtpAuthPassword to SMTPAuthentication
+            if (smtpAuthPassword != null && authentication == null) {
                 authentication = new SMTPAuthentication(smtpAuthUsername, smtpAuthPassword);
             }
+            // Migrating SMTPAuthentication to Credentials
+            migrateAuthenticationToCredentials();
             return this;
+        }
+
+        // Package private so migration can be directly triggered by tests
+        void migrateAuthenticationToCredentials() throws FormException {
+            if (credentialsId == null && authentication != null) {
+                credentialsId = migrateToCredentials(authentication);
+                if (credentialsId != null) {
+                    authentication = null;
+                    save();
+                }
+            }
+        }
+
+        @CheckForNull
+        private String migrateToCredentials(@NonNull SMTPAuthentication auth) throws FormException {
+            Jenkins j = Jenkins.getInstanceOrNull();
+            if (j == null) {
+                LOGGER.warning("Cannot migrate SMTP authentication to credentials: Jenkins is not ready yet.");
+                return null;
+            }
+
+            String username = Util.fixEmpty(auth.getUsername());
+            String password = Secret.toString(auth.getPassword());
+
+            if (username == null && password.isBlank()) {
+                LOGGER.fine("Skipping migration: both username and password are empty.");
+                return null;
+            }
+
+            String id = findExistingCredential(username, password);
+            if (id != null) {
+                LOGGER.info("Reusing existing credential: " + id);
+                return id;
+            }
+
+            UsernamePasswordCredentialsImpl migratedCredentials = new UsernamePasswordCredentialsImpl(
+                    CredentialsScope.GLOBAL,
+                    null,
+                    "Migrated from Mailer SMTP authentication",
+                    username,
+                    password
+            );
+            id = migratedCredentials.getId();
+
+            for (CredentialsStore store : CredentialsProvider.lookupStores(j)) {
+                try {
+                    if (store.hasPermission(CredentialsProvider.CREATE)
+                            && store.addCredentials(Domain.global(), migratedCredentials)) {
+                        LOGGER.info("Migrated Mailer SMTP authentication to Jenkins credentials with ID: " + id);
+                        return id;
+                    }
+                } catch (Exception e) {
+                    LOGGER.warning("Failed to add credentials to store: " + e);
+                }
+            }
+
+            LOGGER.warning("Failed to migrate Mailer SMTP authentication to Jenkins credentials.");
+            return null;
+        }
+
+        // Before creating a new credential, checking if one already exists
+        private String findExistingCredential(String username, String password) {
+            if (username == null || password.isBlank()) {
+                return null;
+            }
+
+            return CredentialsProvider.lookupCredentialsInItemGroup(
+                    StandardUsernamePasswordCredentials.class,
+                    Jenkins.get(),
+                    ACL.SYSTEM2,
+                    Collections.emptyList()
+            ).stream()
+            .filter(c -> username.equals(c.getUsername()))
+            .filter(c -> password.equals(Secret.toString(c.getPassword())))
+            .map(StandardUsernamePasswordCredentials::getId)
+            .findFirst()
+            .orElse(null);
         }
 
         public FormValidation doAddressCheck(@QueryParameter String value) {
@@ -673,9 +861,7 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          * @throws IOException in case the active jenkins instance cannot be retrieved
          * @param smtpHost name of the SMTP server to use for mail sending
          * @param adminAddress Jenkins administrator mail address
-         * @param authentication if set to {@code true} SMTP is used without authentication (username and password)
-         * @param username plaintext username for SMTP authentication
-         * @param password secret password for SMTP authentication
+         * @param credentialsId credentials ID to use for SMTP auth
          * @param useSsl if set to {@code true} SSL is used
          * @param useTls if set to {@code true} TLS is used
          * @param smtpPort port to use for SMTP transfer
@@ -685,17 +871,34 @@ public class Mailer extends Notifier implements SimpleBuildStep {
          */
         @RequirePOST
         public FormValidation doSendTestMail(
-                @QueryParameter String smtpHost, @QueryParameter String adminAddress, @QueryParameter boolean authentication,
-                @QueryParameter String username, @QueryParameter Secret password,
+                @QueryParameter String smtpHost, @QueryParameter String adminAddress, @QueryParameter String credentialsId,
                 @QueryParameter boolean useSsl, @QueryParameter boolean useTls, @QueryParameter String smtpPort, @QueryParameter String charset,
                 @QueryParameter String sendTestMailTo) throws IOException {
             try {
                 Jenkins.get().checkPermission(Jenkins.MANAGE);
-                if (!authentication) {
-                    username = null;
-                    password = null;
+
+                String username = null;
+                Secret password = null;
+
+                // Get credentials if specified
+                if (credentialsId != null && !credentialsId.trim().isEmpty()) {
+                    StandardUsernamePasswordCredentials credentials = CredentialsProvider.lookupCredentialsInItemGroup(
+                            StandardUsernamePasswordCredentials.class,
+                            Jenkins.get(),
+                            ACL.SYSTEM2,
+                            Collections.emptyList()
+                    ).stream()
+                            .filter(c -> c.getId().equals(credentialsId))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (credentials != null) {
+                        username = credentials.getUsername();
+                        password = credentials.getPassword();
+                    }
                 }
-                if (FIPS140.useCompliantAlgorithms() && authentication && !(useSsl || useTls)) {
+
+                if (FIPS140.useCompliantAlgorithms() && username != null && !(useSsl || useTls)) {
                     return FormValidation.error(Messages.Mailer_InsecureAuthError());
                 }
 
@@ -717,9 +920,9 @@ public class Mailer extends Notifier implements SimpleBuildStep {
         }
 
         @RequirePOST
-        public FormValidation doCheckAuthentication(@QueryParameter boolean authentication, @QueryParameter boolean useSsl, @QueryParameter boolean useTls) {
+        public FormValidation doCheckAuthentication(@QueryParameter String credentialsId, @QueryParameter boolean useSsl, @QueryParameter boolean useTls) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
-            if (!authentication || useSsl || useTls) {
+            if (credentialsId == null || credentialsId.trim().isEmpty() || useSsl || useTls) {
                 return FormValidation.ok();
             }
             // authentication is enabled without either TLS or SSL
